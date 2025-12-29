@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Food Nutrition Dashboard</title>
+
+    <!-- Google Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root{
+            --bg: #071024; /* deep slate */
+            --card: #071022;
+            --muted: #9fb3d9;
+            --accent: linear-gradient(135deg,#00c6ff 0%,#0072ff 100%); /* vibrant cyan-blue */
+            --accent-solid: #00b4ff;
+            --accent-2: linear-gradient(135deg,#7b61ff 0%,#ff6bd6 100%); /* purple-pink */
+            --glass: rgba(255,255,255,0.03);
+            --glass-2: rgba(255,255,255,0.02);
+        }
+
+        *{box-sizing:border-box}
+        body{
+            margin:0;
+            font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+            background: radial-gradient(1200px 500px at 10% 10%, rgba(99,102,241,0.08), transparent 8%),
+                        linear-gradient(180deg, #071024 0%, #071a2e 100%);
+            color:#e6eef8;
+            -webkit-font-smoothing:antialiased;
+            -moz-osx-font-smoothing:grayscale;
+            padding:36px;
+        }
+
+        .app {
+            max-width:1100px;
+            margin:0 auto;
+        }
+
+        header{
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            gap:20px;
+            margin-bottom:18px;
+        }
+
+        .brand{
+            display:flex;align-items:center;gap:12px
+        }
+        .logo{
+            width:46px;height:46px;border-radius:10px;background:var(--accent);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;box-shadow:0 6px 20px rgba(255,122,154,0.12);
+        }
+        .title{font-size:18px;font-weight:700}
+        .subtitle{color:var(--muted);font-size:13px}
+
+        nav{display:flex;gap:12px;align-items:center}
+        .btn, .muted-btn{padding:10px 14px;border-radius:10px;border:none;cursor:pointer;font-weight:600}
+        .btn{background:linear-gradient(90deg,#ff7a9a,#ffb199);color:#071028}
+        .muted-btn{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted)}
+
+        .grid {
+            display:grid;
+            grid-template-columns: 1fr 420px;
+            gap:20px;
+            align-items:start;
+            margin-top:18px;
+        }
+
+        /* LEFT PANEL */
+        .panel{
+            background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+            border-radius:14px;padding:20px;border:1px solid rgba(255,255,255,0.03);
+            box-shadow: 0 10px 30px rgba(2,6,23,0.6);
+        }
+
+        .upload-area{
+            border:1px dashed rgba(255,255,255,0.06);
+            padding:28px;border-radius:12px;background:var(--glass);
+            display:flex;align-items:center;gap:18px;flex-wrap:wrap
+        }
+
+        .upload-info{flex:1}
+        .upload-title{font-weight:700}
+        .upload-desc{color:var(--muted);font-size:13px;margin-top:6px}
+
+        input[type=file]{display:none}
+        .file-btn{padding:10px 14px;border-radius:10px;background:#0b1227;border:1px solid rgba(255,255,255,0.04);color:#fff;cursor:pointer}
+
+        .stats{
+            display:grid;grid-template-columns:repeat(3, 1fr);gap:12px;margin-top:18px
+        }
+        .stat{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:12px;border-radius:10px;text-align:center;border:1px solid rgba(255,255,255,0.02)}
+        .stat h4{margin:0;font-size:12px;color:var(--muted)}
+        .stat p{margin:6px 0 0;font-size:18px;font-weight:700}
+
+        /* DETECTED ITEMS */
+        .detected-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-top:18px}
+        .detected-card{background:linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0.01));padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.02);}
+        .detected-card .name{font-weight:700}
+        .detected-card input{width:100%;padding:8px;margin-top:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:#fff}
+
+        /* RIGHT PANEL */
+        .right-panel{position:relative}
+        .card-hero{padding:18px;border-radius:12px;background:linear-gradient(90deg,#0b1227,#071028);border:1px solid rgba(255,255,255,0.03)}
+        .macro-grid{display:flex;gap:10px;margin-top:12px}
+        .macro{flex:1;background:rgba(255,255,255,0.02);padding:10px;border-radius:8px;text-align:center}
+        .macro h5{margin:0;font-size:12px;color:var(--muted)}
+        .macro p{margin:8px 0 0;font-size:18px;font-weight:800}
+
+        canvas{max-width:100%}
+
+        /* Nutrition results */
+        .results{margin-top:18px}
+        .result-item{display:flex;align-items:center;justify-content:space-between;padding:14px;border-radius:10px;background:rgba(255,255,255,0.01);border:1px solid rgba(255,255,255,0.02);margin-bottom:10px}
+        .result-item strong{font-weight:700}
+        .progress{height:8px;background:rgba(255,255,255,0.03);border-radius:999px;overflow:hidden;margin-top:8px}
+        .progress > i{display:block;height:100%;background:linear-gradient(90deg,#ff7a9a,#ffd6a5)}
+
+        footer{margin-top:28px;color:var(--muted);text-align:center;font-size:13px}
+
+        /* responsive */
+        .logo{transition:transform .24s cubic-bezier(.2,.9,.3,1)}
+        .logo:hover{transform:translateY(-3px) scale(1.06) rotate(-6deg)}
+
+        .left-charts{margin-top:18px}
+        .charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px}
+        .chart-card{background:rgba(255,255,255,0.02);padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.02);min-height:140px;display:flex;align-items:center;justify-content:center}
+        .chart-card canvas{width:100%;height:120px}
+
+        body.light{
+            background: linear-gradient(180deg,#f7fbff 0%,#ffffff 100%);
+            color:#071028;
+        }
+        body.light .panel, body.light .card-hero{
+            background: linear-gradient(180deg,#fff,#f7fbff);
+            color:#071028;
+            border:1px solid rgba(7,16,36,0.04);
+        }
+        body.light .muted-btn{background:transparent;border:1px solid rgba(7,16,36,0.06);color:#071028}
+        body.light .btn{color:#071028}
+
+        @media (max-width:980px){
+            .grid{grid-template-columns:1fr}
+            .stats{grid-template-columns:repeat(2,1fr)}
+            .charts-grid{grid-template-columns:1fr}
+        }
+
+    </style> 
+</head>
+<body>
+<div class="app">
+    <header>
+        <div class="brand">
+            <div class="logo">FN</div>
+            <div>
+                <div class="title">Food Nutrition</div>
+                <div class="subtitle">Multi-item detection • Quick nutrition</div>
+            </div>
+            {% if user.is_authenticated %}
+            <div style="margin-left:14px;text-align:right">
+                <div style="font-weight:700">{{ user.username }}</div>
+                <div style="color:var(--muted);font-size:12px">Signed in</div>
+            </div>
+            {% endif %}
+        </div>
+
+        <nav>
+            {% if user.is_authenticated %}
+                <a href="/profile/" class="muted-btn">Profile</a>
+                <a href="/logout/" class="muted-btn">Logout</a>
+            {% else %}
+                <a href="/login/" class="muted-btn">Login</a>
+                <a href="/register/" class="muted-btn">Register</a>
+            {% endif %}
+            <button class="btn" id="newScanBtn">New Scan</button>
+        </nav> 
+    </header>
+
+    <main class="grid">
+        <!-- Left: Upload + Detection -->
+        <section class="panel">
+            <h3 style="margin:0 0 10px">Scan Food Image</h3>
+
+            <form method="post" enctype="multipart/form-data" id="uploadForm">
+                {% csrf_token %}
+            <label class="upload-area" for="imageInput">
+                <div class="upload-info">
+                    <div class="upload-title">Drop or choose an image</div>
+                    <div class="upload-desc">High-quality photos yield better detection. Try top-down shots of the plate.</div>
+                </div>
+                <div style="display:flex;gap:8px;align-items:center">
+                    <button type="button" class="file-btn" id="chooseBtn">Choose</button>
+                    <button type="submit" class="btn" id="scanBtn" disabled>Scan Food</button>
+                </div>
+            </label>
+            <input type="file" name="image" id="imageInput" accept="image/*" required style="display:none">
+            </form>
+
+
+
+            <!-- STEP 2: ASK WEIGHT FOR EACH DETECTED ITEM -->
+            {% if detected_items %}
+            <div class="detected-block" style="margin-top:18px">
+                <h4 style="margin-bottom:8px">Detected Items <span style="color:var(--muted);font-size:13px">({{ detected_items|length }})</span></h4>
+                <div class="detected-list">
+                    <form method="post" id="weightsForm">
+                        {% csrf_token %}
+                        {% for item in detected_items %}
+                            <div class="detected-card">
+                                <div class="name">{{ item }}</div>
+                                <input type="hidden" name="detected_items" value="{{ item }}">
+                                <input type="number" name="grams_{{ item }}" placeholder="grams" required>
+                            </div>
+                        {% endfor %}
+                        <div style="grid-column:1/-1;margin-top:12px">
+                            <button type="submit" class="btn" id="viewNutritionBtn">View Nutrition</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            {% elif detected_items is not None %}
+                <div style="margin-top:16px;color:var(--muted);font-size:13px">No food detected — try a clearer photo or different angle.</div>
+            {% endif %}
+
+            <div class="left-charts">
+                <h4 style="margin-bottom:8px">Quick Insights</h4>
+                <div class="charts-grid">
+                    <div class="chart-card" style="grid-column:1/-1">
+                        <canvas id="itemCalChart"></canvas>
+                    </div>
+                </div> 
+            </div>
+
+        </section> 
+
+        <!-- Right: Summary + Chart -->
+        <aside class="right-panel">
+            <div class="card-hero">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+                    <div>
+                        <h3 style="margin:0">Today's Meal</h3>
+                        <div style="color:var(--muted);font-size:13px;margin-top:6px">Summary for the selected image</div>
+                    </div>
+                    <div style="width:140px">
+                        <canvas id="macroChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="macro-grid" style="margin-top:8px">
+                    <div class="macro">
+                        <h5>Calories</h5>
+                        <p id="caloriesVal">—</p>
+                    </div>
+                    <div class="macro">
+                        <h5>Protein</h5>
+                        <p id="proteinVal">—</p>
+                    </div>
+                    <div class="macro">
+                        <h5>Fat</h5>
+                        <p id="fatVal">—</p>
+                    </div>
+                </div>
+
+                <div class="results">
+                    {% if items %}
+                        <h4 style="margin-bottom:8px">Nutrition per Item</h4>
+                        {% for item in items %}
+                        <div class="result-item">
+                            <div>
+                                <div><strong>{{ item.food }}</strong> • <span style="color:var(--muted)">{{ item.grams }} g</span></div>
+
+                            </div>
+                            <div style="text-align:right">
+                                <div style="font-size:14px;color:var(--muted)">Calories</div>
+                                <div style="font-weight:800">{{ item.nutrition.calories }} kcal</div>
+                            </div>
+                        </div>
+                        {% endfor %}
+
+                        <hr style="border:none;border-top:1px solid rgba(255,255,255,0.03);margin:14px 0;">
+
+                        <h4 style="margin-bottom:8px">Total Nutrition</h4>
+                        <div class="result-item">
+                            <div><strong>Total Calories</strong></div>
+                            <div style="font-weight:800">{{ total.calories }} kcal</div>
+                        </div>
+                        <div class="result-item">
+                            <div><strong>Protein</strong></div>
+                            <div style="font-weight:800">{{ total.protein_g }} g</div>
+                        </div>
+                        <div class="result-item">
+                            <div><strong>Fat</strong></div>
+                            <div style="font-weight:800">{{ total.fat_g }} g</div>
+                        </div>
+                        <div class="result-item">
+                            <div><strong>Carbs</strong></div>
+                            <div style="font-weight:800">{{ total.carbs_g }} g</div>
+                        </div>
+                        <div class="result-item">
+                            <div><strong>Fiber</strong></div>
+                            <div style="font-weight:800">{{ total.fiber_g }} g</div>
+                        </div>
+
+                        <div style="margin-top:12px">
+                            <button id="downloadCsv" class="muted-btn">Download Nutrition (CSV)</button>
+                        </div>
+                    {% else %}
+                        <div style="color:var(--muted);font-size:13px">No nutrition calculated yet — scan an image and enter weights to get started.</div>
+                    {% endif %}
+                </div>
+
+            </div>
+        </aside>
+
+    </main>
+
+    <footer>© Food Nutrition System • Django + YOLO</footer>
+</div>
+
+<!-- Floating debug panel (captures window errors & console.error for quick debugging) -->
+<div id="debugWrapper" style="position:fixed;left:14px;bottom:14px;z-index:9999;">
+    <button id="debugBtn" title="Show debug logs" style="background:#1b2430;color:#fff;padding:8px 10px;border-radius:10px;border:none;box-shadow:0 8px 18px rgba(2,6,23,0.6);cursor:pointer">🐞 Debug <span id="debugCount" style="margin-left:8px;background:#ff5d5d;color:#fff;padding:2px 6px;border-radius:999px;font-size:12px;display:inline-block">0</span></button>
+    <div id="debugPanel" style="display:none;min-width:360px;max-width:520px;max-height:360px;overflow:auto;background:rgba(0,0,0,0.85);color:#fff;padding:12px;border-radius:10px;margin-top:8px;font-family:monospace;font-size:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <strong>Client Logs</strong>
+            <div>
+                <button id="debugCopy" style="margin-right:8px;padding:6px;border-radius:8px;border:none;cursor:pointer">Copy</button>
+                <button id="debugClear" style="padding:6px;border-radius:8px;border:none;cursor:pointer">Clear</button>
+            </div>
+        </div>
+        <div id="debugList"></div>
+    </div>
+</div>
+
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    // Small client-side interactions
+    (function(){
+        const chooseBtn = document.getElementById('chooseBtn');
+        const imageInput = document.getElementById('imageInput');
+        const scanBtn = document.getElementById('scanBtn');
+        if(chooseBtn){
+            chooseBtn.addEventListener('click', function(){ if(imageInput) imageInput.click(); });
+        }
+        if(imageInput && scanBtn){
+            function toggle(){ scanBtn.disabled = !(imageInput.files && imageInput.files.length>0); }
+            imageInput.addEventListener('change', toggle);
+            toggle();
+        }
+    })();
+
+    {% if total %}
+    // Populate values (guarded)
+    (function(){
+        const cEl = document.getElementById('caloriesVal');
+        const pEl = document.getElementById('proteinVal');
+        const fEl = document.getElementById('fatVal');
+        if(cEl) cEl.textContent = '{{ total.calories }} kcal';
+        if(pEl) pEl.textContent = '{{ total.protein_g }} g';
+        if(fEl) fEl.textContent = '{{ total.fat_g }} g';
+    })();
+
+    // Chart data (guarded)
+    (function(){
+        try{
+            const c = document.getElementById('macroChart');
+            if(c){
+                new Chart(c, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Protein (g)','Fat (g)','Carbs (g)'],
+                        datasets: [{
+                            data: [{{ total.protein_g }}, {{ total.fat_g }}, {{ total.carbs_g }}],
+                            backgroundColor: ['#4fd1c5','#ffd166','#ffa69e'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {cutout: '70%',plugins: { legend: {display:false} }}
+                });
+            }
+        }catch(err){console.warn('macroChart failed:',err)}
+    })();
+    {% else %}
+    // default empty chart (guarded)
+    (function(){
+        try{
+            const c = document.getElementById('macroChart');
+            if(c){
+                new Chart(c, {type:'doughnut',data:{labels:['Protein','Fat','Carbs'],datasets:[{data:[0,0,0],backgroundColor:['#4fd1c5','#ffd166','#ffa69e']}]},options:{cutout:'70%',plugins:{legend:{display:false}}}});
+            }
+        }catch(err){console.warn('macroChart failed:',err)}
+    })();
+    {% endif %}
+
+    // Additional charts in left panel (quick insights)
+    (function(){
+        try{
+        {% if items %}
+            const itemLabels = [{% for item in items %}'{{ item.food|escapejs }}'{% if not forloop.last %},{% endif %}{% endfor %}];
+            const itemCals   = [{% for item in items %}{{ item.nutrition.calories|default:0 }}{% if not forloop.last %},{% endif %}{% endfor %}];
+        {% else %}
+            const itemLabels = ['—'];
+            const itemCals = [0];
+        {% endif %}
+
+
+        // Item calories horizontal chart
+        const ctxItem = document.getElementById('itemCalChart');
+        if(ctxItem){
+            new Chart(ctxItem, {
+                type:'bar',
+                data:{labels:itemLabels,datasets:[{label:'Calories',data:itemCals,backgroundColor:'#ff7a9a'}]},
+                options:{indexAxis:'y',scales:{x:{beginAtZero:true}},plugins:{legend:{display:false}},responsive:true,maintainAspectRatio:false}
+            });
+        }
+        }catch(err){console.warn('left panel charts failed:',err)}
+    })();
+
+    // CSV export for nutrition summary
+    (function(){
+        try{
+            const btn = document.getElementById('downloadCsv');
+            if(!btn) return;
+            btn.addEventListener('click', function(){
+                const rows = [['food','grams','calories','protein_g','fat_g','carbs_g','fiber_g']];
+                {% for item in items %}
+                    rows.push(['{{ item.food|escapejs }}', '{{ item.grams }}', '{{ item.nutrition.calories }}','{{ item.nutrition.protein_g }}','{{ item.nutrition.fat_g }}','{{ item.nutrition.carbs_g }}','{{ item.nutrition.fiber_g }}']);
+                {% endfor %}
+                rows.push(['Total','','{{ total.calories }}','{{ total.protein_g }}','{{ total.fat_g }}','{{ total.carbs_g }}','{{ total.fiber_g }}']);
+                const csv = rows.map(r => r.map(c=> '"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
+                const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a'); a.href = url; a.download = 'nutrition_summary.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+            });
+        }catch(e){console.warn('csv export failed',e)}
+    })();
+
+
+// Debug panel behaviour
+(function(){
+    try{
+        const logs = [];
+        const debugBtn = document.getElementById('debugBtn');
+        const debugPanel = document.getElementById('debugPanel');
+        const debugList = document.getElementById('debugList');
+        const debugCount = document.getElementById('debugCount');
+        const debugCopy = document.getElementById('debugCopy');
+        const debugClear = document.getElementById('debugClear');
+
+        function render(){
+            if(!debugList) return;
+            debugList.innerHTML = logs.slice().reverse().map(l => `<div style="padding:8px;border-bottom:1px solid rgba(255,255,255,0.03)"><div style="color:#ffd6a5">${l.type}</div><div>${l.msg}</div><div style="color:#9fb3d9;font-size:11px;margin-top:6px">${l.when}</div></div>`).join('');
+            if(debugCount) debugCount.textContent = String(logs.length);
+        }
+
+        function pushLog(type,msg){ logs.push({type,type, msg: String(msg), when: new Date().toLocaleString()}); if(logs.length>500) logs.shift(); render(); }
+
+        // capture window errors
+        window.addEventListener('error', function(e){ pushLog('error', e.message + ' @ ' + (e.filename||'') + ':' + (e.lineno||'') ); });
+        window.addEventListener('unhandledrejection', function(e){ pushLog('promise', e.reason && e.reason.message ? e.reason.message : JSON.stringify(e.reason)); });
+
+        // intercept console.error
+        (function(){ const orig = console.error; console.error = function(){ try{ pushLog('console.error', Array.from(arguments).map(a=> (typeof a==='object'? JSON.stringify(a):a)).join(' ')); }catch(e){} orig.apply(console,arguments); } })();
+
+        if(debugBtn) debugBtn.addEventListener('click', function(){ if(debugPanel) debugPanel.style.display = debugPanel.style.display === 'none' ? 'block' : 'none'; });
+        if(debugCopy) debugCopy.addEventListener('click', function(){ const text = logs.map(l=>`[${l.when}] ${l.type} - ${l.msg}`).join('\n'); navigator.clipboard && navigator.clipboard.writeText(text); });
+        if(debugClear) debugClear.addEventListener('click', function(){ logs.length = 0; render(); });
+
+        // initial render
+        render();
+
+    }catch(e){console.warn('debug panel failed', e)}
+})();
+</script>
+</body>
+</html>
