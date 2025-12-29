@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Logs - Food Nutrition</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body{font-family:Inter,system-ui,Arial;background:linear-gradient(180deg,#071024,#071a2e);color:#e6eef8;padding:28px}
+        .container{max-width:1100px;margin:0 auto}
+        .header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+        .title{font-size:20px;font-weight:700}
+        .muted{color:#9fb3d9}
+        .card{background:rgba(255,255,255,0.03);padding:18px;border-radius:12px;border:1px solid rgba(255,255,255,0.03)}
+        table{width:100%;border-collapse:collapse;margin-top:12px}
+        th,td{padding:10px;border-bottom:1px solid rgba(255,255,255,0.03);text-align:left}
+        .controls{display:flex;gap:8px;align-items:center}
+
+        /* Streak badge (compact, matches screenshot) */
+        .streak-badge{display:inline-grid;place-items:center;width:40px;height:40px;border-radius:8px;font-weight:900;color:#fff;font-size:16px;box-shadow:0 6px 14px rgba(0,0,0,0.34);position:relative;padding:4px;text-decoration:none;z-index:10;border:1px solid rgba(255,255,255,0.04)}
+        .streak-badge .streak-fire{position:absolute;left:6px;top:6px;font-size:14px;filter:drop-shadow(0 1px 4px rgba(0,0,0,0.12))}
+        .streak-badge .streak-num{font-size:16px;font-weight:900;color:#071028}
+        /* Dashboard modifier: slightly larger for home page */
+        .streak-badge--home{width:64px;height:64px;border-radius:12px;font-size:20px;background:var(--accent-solid);color:#071028}
+        .streak-badge--home .streak-fire{font-size:20px}
+        .streak-badge--home .streak-num{font-size:20px}
+        .streak-increment{animation:streak-pop .95s cubic-bezier(.2,.9,.2,1)}
+        @keyframes streak-pop{0%{transform:scale(1);opacity:1}40%{transform:scale(1.28);opacity:1}100%{transform:scale(1);opacity:1}}
+        .muted-small{color:#9fb3d9;font-size:13px}
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <div>
+            <div class="title">All Meal Logs</div>
+            <div class="muted">Search, filter, and export your meal logs</div>
+        </div>
+        <div class="controls">
+            <a href="/" class="muted" style="background:transparent;border-radius:8px;padding:8px 10px;border:1px solid rgba(255,255,255,0.03);color:#9fb3d9;text-decoration:none">Back to Dashboard</a>
+            <button id="exportCsv" style="padding:8px 10px;border-radius:8px;border:none;background:#00b4ff;color:#071028;font-weight:700;cursor:pointer">Export CSV</button>
+            {% if user.is_authenticated %}
+            <div style="margin-left:12px;display:flex;align-items:center;gap:8px">
+                <div style="font-size:12px;color:#9fb3d9">Streak</div>
+                <a href="/analytics/logs/?date={{ streak_date }}" style="text-decoration:none">
+                    <div class="streak-badge" data-count="{{ streak.count }}" data-color="{{ streak.color }}" role="img" aria-label="{{ streak.count }} day streak">
+                        <span class="streak-fire">🔥</span>
+                        <span class="streak-num">{{ streak.count }}</span>
+                    </div>
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div style="margin-top:18px" class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+            <div style="display:flex;gap:8px;align-items:center;">
+                <input id="filterDate" type="date" style="background:transparent;border:1px solid rgba(255,255,255,0.03);color:#e6eef8;padding:6px;border-radius:6px" value="{{ now|date:'Y-m-d' }}">
+                <input id="q" placeholder="Search meal name..." style="background:transparent;border:1px solid rgba(255,255,255,0.03);color:#e6eef8;padding:6px;border-radius:6px">
+                <button onclick="applyFilters()" style="padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,0.03);background:transparent;color:#e6eef8;">Filter</button>
+                <button onclick="clearFilters()" style="padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,0.03);background:transparent;color:#e6eef8;">Clear</button>
+            </div>
+            <div class="muted-small">Showing <strong id="count">{{ logs|length }}</strong> logs</div>
+        </div>
+
+        <table id="logsTable">
+            <thead>
+                <tr><th>Date</th><th>Meal</th><th>Calories</th><th>Macros</th><th>Details</th></tr>
+            </thead>
+            <tbody>
+                {% for log in logs %}
+                <tr data-log-date="{{ log.local_created|date:'Y-m-d' }}" data-meal-name="{{ log.meal_name|lower }}">
+                    <td>{{ log.local_created|date:'Y-m-d H:i T' }}</td>
+                    <td>{{ log.computed_icon }} {{ log.meal_name }} <span class="muted-small">· {{ log.computed_type }}</span></td>
+                    <td>{{ log.calories }} kcal</td>
+                    <td>{{ log.protein_g }} g • {{ log.fat_g }} g • {{ log.carbs_g }} g</td>
+                    <td><button class="showItems">Show</button></td>
+                </tr>
+                <tr class="details" style="display:none"><td colspan="5">{% if log.items_json %}{{ log.items_json|linebreaksbr }}{% else %}<span class="muted">No details</span>{% endif %}</td></tr>
+                {% empty %}
+                <tr><td colspan="5" class="muted">No logs found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    function applyFilters(){
+        const d = document.getElementById('filterDate').value;
+        const q = document.getElementById('q').value.toLowerCase().trim();
+        document.querySelectorAll('#logsTable tbody tr').forEach(tr=>{
+            if(tr.classList.contains('details')) return;
+            const date = tr.getAttribute('data-log-date');
+            const name = tr.getAttribute('data-meal-name') || '';
+            let ok = true;
+            if(d && date !== d) ok = false;
+            if(q && !name.includes(q)) ok = false;
+            tr.style.display = ok ? '' : 'none';
+            const detail = tr.nextElementSibling; if(detail && detail.classList.contains('details')) detail.style.display = ok ? '' : 'none';
+        });
+        document.getElementById('count').textContent = document.querySelectorAll('#logsTable tbody tr:not(.details):not([style*="display:none"])').length;
+    }
+    function clearFilters(){ document.getElementById('filterDate').value = '{{ now|date:"Y-m-d" }}'; document.getElementById('q').value=''; applyFilters(); }
+    // toggle details rows
+    document.querySelectorAll('.showItems').forEach(b=> b.addEventListener('click', function(){ const tr = this.closest('tr'); const det = tr.nextElementSibling; if(det) det.style.display = det.style.display==='none' ? '' : 'none'; }));
+    // CSV export
+    document.getElementById('exportCsv').addEventListener('click', function(){
+        const rows = [['created_at','meal_name','calories','protein_g','fat_g','carbs_g','fiber_g']];
+        document.querySelectorAll('#logsTable tbody tr').forEach((tr)=>{
+            if(tr.classList.contains('details')) return;
+            if(tr.style.display==='none') return;
+            const cells = tr.querySelectorAll('td');
+            rows.push([cells[0].textContent, cells[1].textContent, cells[2].textContent.replace(' kcal',''), '', '', '']);
+        });
+        const csv = rows.map(r => r.map(c=> '"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
+        const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+        const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download='meal_logs.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+    });
+</script>
+<script>
+(function(){
+    try{
+        const b = document.querySelector('.streak-badge[data-count]');
+        if(!b) return;
+        b.style.background = b.dataset.color || b.style.background;
+        const cur = Number(b.dataset.count || 0);
+        const key = 'fn_last_streak';
+        const prev = Number(localStorage.getItem(key) || 0);
+        if(cur > prev && prev >= 0){ b.classList.add('streak-increment'); setTimeout(()=>b.classList.remove('streak-increment'), 1400); }
+        localStorage.setItem(key, String(cur));
+    }catch(e){console.warn('streak init',e)}
+})();
+</script>
+</body>
+</html>

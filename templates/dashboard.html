@@ -61,11 +61,20 @@
 
         .grid {
             display:grid;
-            grid-template-columns: 1fr 420px;
+            grid-template-columns: 1fr; /* single-column full page flow */
             gap:20px;
             align-items:start;
             margin-top:18px;
         }
+
+       /* upload preview and status */
+       .upload-preview{display:none;margin-top:12px;align-items:center;gap:12px}
+       .upload-preview img{width:72px;height:72px;object-fit:cover;border-radius:8px;border:1px solid rgba(255,255,255,0.04)}
+       .file-meta{font-size:13px;color:var(--muted)}
+       .remove-file-btn{background:transparent;border:none;color:#ff8b8b;cursor:pointer;font-weight:700;padding:6px}
+
+       /* stacked right panel spacing once grid is single-column */
+       .right-panel{position:relative;margin-top:10px}
 
         /* LEFT PANEL */
         .panel{
@@ -128,6 +137,17 @@
         .chart-card{background:rgba(255,255,255,0.02);padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.02);min-height:140px;display:flex;align-items:center;justify-content:center}
         .chart-card canvas{width:100%;height:120px}
 
+        /* Streak badge (large but moderate) */
+        .streak-badge{display:inline-grid;place-items:center;width:48px;height:48px;border-radius:10px;font-weight:900;color:#fff;font-size:18px;box-shadow:0 8px 20px rgba(0,0,0,0.45);position:relative;padding:6px;text-decoration:none;z-index:10;border:1px solid rgba(255,255,255,0.04)}
+        .streak-badge .streak-fire{position:absolute;left:6px;top:4px;font-size:16px;filter:drop-shadow(0 2px 6px rgba(0,0,0,0.18))}
+        .streak-badge .streak-num{font-size:18px;font-weight:900;color:#071028}
+        /* Dashboard modifier: slightly larger for home page */
+        .streak-badge--home{width:64px;height:64px;border-radius:12px;font-size:20px;background:var(--accent-solid);color:#071028;z-index:20}
+        .streak-badge--home .streak-fire{font-size:20px}
+        .streak-badge--home .streak-num{font-size:20px}
+        .streak-increment{animation:streak-pop .95s cubic-bezier(.2,.9,.2,1)}
+        @keyframes streak-pop{0%{transform:scale(1);opacity:1}40%{transform:scale(1.28);opacity:1}100%{transform:scale(1);opacity:1}}
+
         body.light{
             background: linear-gradient(180deg,#f7fbff 0%,#ffffff 100%);
             color:#071028;
@@ -165,16 +185,30 @@
             {% endif %}
         </div>
 
-        <nav>
+        <div style="display:flex;align-items:center;gap:12px">
             {% if user.is_authenticated %}
-                <a href="/profile/" class="muted-btn">Profile</a>
-                <a href="/logout/" class="muted-btn">Logout</a>
-            {% else %}
-                <a href="/login/" class="muted-btn">Login</a>
-                <a href="/register/" class="muted-btn">Register</a>
+                <div style="display:flex;align-items:center;gap:10px">
+                    <div style="font-size:12px;color:var(--muted)">Streak</div>
+                    <a href="/analytics/logs/?date={{ streak_date }}" style="text-decoration:none">
+                        <div class="streak-badge" data-count="{{ streak.count }}" data-color="{{ streak.color }}" role="img" aria-label="{{ streak.count }} day streak">
+                            <span class="streak-fire">🔥</span>
+                            <span class="streak-num">{{ streak.count }}</span>
+                        </div>
+                    </a>
+                </div>
             {% endif %}
-            <button class="btn" id="newScanBtn">New Scan</button>
-        </nav> 
+
+            <nav>
+                {% if user.is_authenticated %}
+                    <a href="/profile/" class="muted-btn">Profile</a>
+                    <a href="/history/" class="muted-btn">Analytics</a>
+                    <a href="/logout/" class="muted-btn">Logout</a>
+                {% else %}
+                    <a href="/login/" class="muted-btn">Login</a>
+                    <a href="/register/" class="muted-btn">Register</a>
+                {% endif %}
+            </nav>
+        </div>
     </header>
 
     <main class="grid">
@@ -195,6 +229,17 @@
                 </div>
             </label>
             <input type="file" name="image" id="imageInput" accept="image/*" required style="display:none">
+            <div id="uploadPreview" class="upload-preview">
+                <img id="uploadThumb" src="" alt="preview">
+                <div style="display:flex;flex-direction:column">
+                    <div class="file-meta" id="fileName">No file selected</div>
+                    <div class="file-meta" id="fileSize"></div>
+                </div>
+                <div style="margin-left:auto">
+                    <button type="button" id="removeFile" class="remove-file-btn">Remove</button>
+                </div>
+            </div>
+            <div id="uploadStatus" style="margin-top:8px;color:var(--muted);font-size:13px"></div>
             </form>
 
 
@@ -206,6 +251,18 @@
                 <div class="detected-list">
                     <form method="post" id="weightsForm">
                         {% csrf_token %}
+                        <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px">
+                            <label style="font-weight:700">Meal type</label>
+                            <select name="meal_type" style="padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:#fff">
+                                <option value="Auto" selected>Auto (by time)</option>
+                                <option value="Breakfast">Breakfast</option>
+                                <option value="Lunch">Lunch</option>
+                                <option value="Dinner">Dinner</option>
+                                <option value="Snack">Snack</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+
                         {% for item in detected_items %}
                             <div class="detected-card">
                                 <div class="name">{{ item }}</div>
@@ -342,13 +399,48 @@
         const chooseBtn = document.getElementById('chooseBtn');
         const imageInput = document.getElementById('imageInput');
         const scanBtn = document.getElementById('scanBtn');
+        const uploadPreview = document.getElementById('uploadPreview');
+        const uploadThumb = document.getElementById('uploadThumb');
+        const fileNameEl = document.getElementById('fileName');
+        const fileSizeEl = document.getElementById('fileSize');
+        const removeBtn = document.getElementById('removeFile');
+        const uploadStatus = document.getElementById('uploadStatus');
+
         if(chooseBtn){
             chooseBtn.addEventListener('click', function(){ if(imageInput) imageInput.click(); });
         }
         if(imageInput && scanBtn){
-            function toggle(){ scanBtn.disabled = !(imageInput.files && imageInput.files.length>0); }
-            imageInput.addEventListener('change', toggle);
-            toggle();
+            function formatBytes(bytes){ if(bytes<1024) return bytes+' B'; if(bytes<1048576) return (bytes/1024).toFixed(1)+' KB'; return (bytes/1048576).toFixed(1)+' MB'; }
+            function showPreview(file){
+                if(!file){ uploadPreview.style.display = 'none'; fileNameEl.textContent='No file selected'; fileSizeEl.textContent=''; uploadThumb.src=''; uploadStatus.textContent=''; return; }
+                uploadPreview.style.display = 'flex';
+                fileNameEl.textContent = file.name;
+                fileSizeEl.textContent = formatBytes(file.size);
+                const reader = new FileReader();
+                reader.onload = function(e){ uploadThumb.src = e.target.result || ''; };
+                reader.readAsDataURL(file);
+                uploadStatus.textContent = 'Ready to scan';
+                scanBtn.disabled = false;
+            }
+            imageInput.addEventListener('change', function(){
+                const f = imageInput.files && imageInput.files[0];
+                showPreview(f);
+            });
+            removeBtn && removeBtn.addEventListener('click', function(){
+                imageInput.value = '';
+                showPreview(null);
+                scanBtn.disabled = true;
+            });
+            // start state
+            showPreview(imageInput.files && imageInput.files[0] || null);
+        }
+
+        // show uploading state when the form is submitted
+        const uploadForm = document.getElementById('uploadForm');
+        if(uploadForm){
+            uploadForm.addEventListener('submit', function(){
+                if(scanBtn){ scanBtn.disabled = true; scanBtn.textContent = 'Uploading…'; uploadStatus.textContent = 'Uploading image…'; }
+            });
         }
     })();
 
@@ -473,6 +565,45 @@
         render();
 
     }catch(e){console.warn('debug panel failed', e)}
+})();
+</script>
+<script>
+(function(){
+    try{
+        const b = document.querySelector('.streak-badge[data-count]');
+        if(!b) return;
+        const ds = b.dataset.color || '';
+        b.style.background = ds || b.style.background || 'var(--accent-solid)';
+
+        // Try to set a readable text color based on hex/rgb brightness when possible
+        function pickTextColor(bg){
+            try{
+                bg = String(bg).trim();
+                if(bg.startsWith('#')){
+                    const hex = bg.slice(1);
+                    const r = parseInt(hex.length===3? hex[0]+hex[0] : hex.slice(0,2),16);
+                    const g = parseInt(hex.length===3? hex[1]+hex[1] : hex.slice(2,4),16);
+                    const bval = parseInt(hex.length===3? hex[2]+hex[2] : hex.slice(4,6),16);
+                    const brightness = (r*299 + g*587 + bval*114)/1000;
+                    return brightness > 150 ? '#071028' : '#ffffff';
+                } else if(bg.startsWith('rgb')){
+                    const parts = bg.replace(/[rgba() ]/g,'').split(',').map(s=>Number(s)||0);
+                    const brightness = (parts[0]*299 + parts[1]*587 + parts[2]*114)/1000;
+                    return brightness > 150 ? '#071028' : '#ffffff';
+                }
+            }catch(e){ }
+            // fallback: for dashboard keep dark text for the larger home badge, else white
+            return b.classList.contains('streak-badge--home') ? '#071028' : '#ffffff';
+        }
+
+        b.style.color = pickTextColor(ds || window.getComputedStyle(b).backgroundImage || b.style.background);
+
+        const cur = Number(b.dataset.count || 0);
+        const key = 'fn_last_streak';
+        const prev = Number(localStorage.getItem(key) || 0);
+        if(cur > prev && prev >= 0){ b.classList.add('streak-increment'); setTimeout(()=>b.classList.remove('streak-increment'), 1400); }
+        localStorage.setItem(key, String(cur));
+    }catch(e){console.warn('streak init',e)}
 })();
 </script>
 </body>

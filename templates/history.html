@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>History - Food Nutrition</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body{font-family:Inter,system-ui,Arial;background:linear-gradient(180deg,#071024,#071a2e);color:#e6eef8;padding:28px}
+        .container{max-width:1100px;margin:0 auto}
+        .header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+        .title{font-size:20px;font-weight:700}
+        .muted{color:#9fb3d9}
+
+        .top-grid{display:grid;grid-template-columns:1fr 380px;gap:18px;margin-top:18px}
+        .card{background:rgba(255,255,255,0.03);padding:18px;border-radius:12px;border:1px solid rgba(255,255,255,0.03)}
+        .stat-grid{display:flex;gap:12px;margin-top:12px}
+        .stat{flex:1;background:rgba(255,255,255,0.02);padding:12px;border-radius:10px;text-align:center}
+        .stat h4{margin:0;font-size:12px;color:#9fb3d9}
+        .stat p{margin:8px 0 0;font-weight:800;font-size:16px}
+
+        .logs{margin-top:18px}
+        .log-item{display:flex;justify-content:space-between;padding:10px;border-radius:10px;background:rgba(255,255,255,0.015);border:1px solid rgba(255,255,255,0.02);margin-bottom:8px}
+        .log-meta{color:#9fb3d9;font-size:13px}
+        .controls{display:flex;gap:8px;align-items:center}
+
+        /* Streak badge (compact, matches screenshot) */
+        .streak-badge{display:inline-grid;place-items:center;width:40px;height:40px;border-radius:8px;font-weight:900;color:#fff;font-size:16px;box-shadow:0 6px 14px rgba(0,0,0,0.34);position:relative;padding:4px;text-decoration:none;z-index:10;border:1px solid rgba(255,255,255,0.04)}
+        .streak-badge .streak-fire{position:absolute;left:6px;top:6px;font-size:14px;filter:drop-shadow(0 1px 4px rgba(0,0,0,0.12))}
+        .streak-badge .streak-num{font-size:16px;font-weight:900;color:#071028}
+        /* Dashboard modifier: slightly larger for home page */
+        .streak-badge--home{width:64px;height:64px;border-radius:12px;font-size:20px;background:var(--accent-solid);color:#071028}
+        .streak-badge--home .streak-fire{font-size:20px}
+        .streak-badge--home .streak-num{font-size:20px}
+        .streak-increment{animation:streak-pop .95s cubic-bezier(.2,.9,.2,1)}
+        @keyframes streak-pop{0%{transform:scale(1);opacity:1}40%{transform:scale(1.28);opacity:1}100%{transform:scale(1);opacity:1}}
+
+        @media (max-width:980px){.top-grid{grid-template-columns:1fr}}
+
+        /* range buttons in Export / Controls */
+        .range-btn{padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);background:transparent;color:#e6eef8;cursor:pointer;font-weight:700;transition:all .12s ease}
+        .range-btn.active{color:#071028;background:#00b4ff;border-color:rgba(0,180,255,0.85);box-shadow:0 6px 12px rgba(0,180,255,0.12)}
+    </style>
+</head>
+<body>
+<div class="container">
+    <div id="toast" aria-live="polite" style="position:fixed;left:50%;transform:translateX(-50%);bottom:28px;background:rgba(7,16,40,0.98);color:#00b4ff;padding:10px 14px;border-radius:10px;box-shadow:0 6px 18px rgba(0,0,0,0.4);display:none;font-weight:700;z-index:9999"></div> 
+    <div class="header">
+        <div>
+            <div class="title">Meal History</div>
+            <div class="muted">Overview of your past meals and daily totals</div>
+        </div>
+        <div class="controls">
+            <a href="/" class="muted" style="background:transparent;border-radius:8px;padding:8px 10px;border:1px solid rgba(255,255,255,0.03);color:#9fb3d9;text-decoration:none">Back to Dashboard</a>
+            {% if user.is_authenticated %}
+            <div style="margin-left:12px;display:flex;align-items:center;gap:8px">
+                <div style="font-size:12px;color:#9fb3d9">Streak</div>
+                <a href="/analytics/logs/?date={{ streak_date }}" style="text-decoration:none">
+                    <div class="streak-badge" data-count="{{ streak.count }}" data-color="{{ streak.color }}" role="img" aria-label="{{ streak.count }} day streak">
+                        <span class="streak-fire">🔥</span>
+                        <span class="streak-num">{{ streak.count }}</span>
+                    </div>
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- ANALYTICS HEADER CARDS -->
+    <div style="display:grid;grid-template-columns:1.2fr repeat(3,1fr);gap:12px;margin-top:18px">
+        <div class="card">
+            <div style="font-size:12px;color:#9fb3d9">Total calories (last {{ series_days }} days)</div>
+            <div style="font-weight:800;font-size:20px;margin-top:8px">{{ total_calories }} kcal</div>
+            <div class="muted" style="margin-top:8px">Avg/day: <strong>{{ avg_calories }} kcal</strong></div>
+        </div>
+
+        <div class="card">
+            <div style="font-size:12px;color:#9fb3d9">Today's calories</div>
+            <div style="font-weight:800;font-size:20px;margin-top:8px">{% if total_today %}{{ total_today.calories }} kcal{% else %}0 kcal{% endif %}</div>
+            <div class="muted" style="margin-top:8px">
+                Protein: <strong>{{ total_today.protein_g|default:0 }} g</strong> • 
+                Fat: <strong>{{ total_today.fat_g|default:0 }} g</strong> • 
+                Carbs: <strong>{{ total_today.carbs_g|default:0 }} g</strong>
+            </div>
+        </div>
+
+        <div class="card">
+            <div style="font-size:12px;color:#9fb3d9">Change vs previous {{ series_days }}d</div>
+            <div style="font-weight:800;font-size:20px;margin-top:8px">{% if pct_change != None %}{% if pct_change > 0 %}+{% endif %}{{ pct_change }}%{% else %}—{% endif %}</div>
+            <div class="muted" style="margin-top:8px">Prev total: {{ prev_total }} kcal</div>
+        </div>
+        <div class="card">
+            <div style="font-size:12px;color:#9fb3d9">Key stats (last {{ series_days }} days)</div>
+            <div style="margin-top:10px;display:flex;flex-direction:column;gap:10px">
+                <div style="display:flex;justify-content:space-between"><div class="muted">Days with data</div><div style="font-weight:800">{{ days_with_data }}</div></div>
+                <div style="display:flex;justify-content:space-between"><div class="muted">Max / Day</div><div style="font-weight:800">{{ max_daily_calories }} kcal</div></div>
+                <div style="display:flex;justify-content:space-between"><div class="muted">Average</div><div style="font-weight:800">{{ avg_logged_day }} kcal</div></div>
+
+            </div>
+        </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:2fr 380px;gap:18px;margin-top:18px">
+        <div class="card">
+            <h4 style="margin:0">Daily calories trend</h4>
+            <div class="muted" style="margin-top:6px">Trend over the last {{ series_days }} days</div>
+            <div style="margin-top:12px;height:320px;position:relative">
+                <canvas id="trendChart" style="width:100%;height:100%"></canvas>
+                <div id="trendHoverBox" style="position:absolute;right:12px;top:12px;background:rgba(255,255,255,0.03);padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);color:#e6eef8;display:none"></div>
+                <div id="weeklyNoData" style="display:none;position:absolute;left:0;right:0;top:0;bottom:0;display:flex;align-items:center;justify-content:center;color:#9fb3d9">No recent data</div>
+            </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:12px">
+            <div class="card">
+                <h4 style="margin:0">Meal type breakdown</h4>
+                <div class="muted" style="margin-top:6px">Calories by meal type (last {{ series_days }}d)</div>
+                <div style="margin-top:12px;display:flex;gap:12px;align-items:center">
+                    <div style="flex:1"><canvas id="mealTypeChart" width="140" height="140"></canvas></div>
+                    <div style="width:140px">
+                        {% if meal_type_items %}
+                            {% for mt, val in meal_type_items %}
+                                <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+                                    <div class="muted">{{ mt }}</div>
+                                    <div style="font-weight:800">{{ val|floatformat:1 }} kcal</div>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="muted">No data</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h4 style="margin:0">Macros totals</h4>
+                <div class="muted" style="margin-top:6px">Protein / Fat / Carbs (last {{ series_days }}d)</div>
+                <div style="margin-top:12px">
+                    <div style="display:flex;justify-content:space-between"><div class="muted">Protein</div><div style="font-weight:800">{{ macros_totals.protein_g|floatformat:1 }} g</div></div>
+                    <div style="display:flex;justify-content:space-between;margin-top:6px"><div class="muted">Fat</div><div style="font-weight:800">{{ macros_totals.fat_g|floatformat:1 }} g</div></div>
+                    <div style="display:flex;justify-content:space-between;margin-top:6px"><div class="muted">Carbs</div><div style="font-weight:800">{{ macros_totals.carbs_g|floatformat:1 }} g</div></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h4 style="margin:0">Monthly activity heatmap</h4>
+                <div class="muted" style="margin-top:6px">Last {{ series_days }} days — darker = more calories</div>
+                <div id="calendarHeatmap" style="margin-top:12px;display:flex;gap:12px;align-items:flex-start">
+                    <div id="calendarLabels" style="display:flex;flex-direction:column;gap:4px;padding-right:8px;min-width:28px"></div>
+                    <div id="calendarGrid" style="display:grid;grid-auto-flow:column;grid-auto-rows:14px;gap:4px"></div>
+                    <div id="heatLegend" style="width:120px;font-size:12px;color:#9fb3d9"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div style="margin-top:18px" class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+            <h4 style="margin:0 0 12px">All Meals (recent first)</h4>
+            <div style="display:flex;gap:8px;align-items:center">
+                <input id="filterDate" type="date" style="background:transparent;border:1px solid rgba(255,255,255,0.03);color:#e6eef8;padding:6px;border-radius:6px" value="{{ now|date:'Y-m-d' }}">
+                <button onclick="filterLogsByDate(document.getElementById('filterDate').value)" style="padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,0.03);background:transparent;color:#e6eef8;">Filter</button>
+                <button onclick="clearLogFilter()" style="padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,0.03);background:transparent;color:#e6eef8;">Clear</button>
+                <a href="/analytics/logs/" style="padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,0.03);background:transparent;color:#00b4ff;text-decoration:none">Open Logs Page</a>
+            </div>
+        </div>
+        <div id="allMealsList">
+            {% for log in logs %}
+                <div data-log-date="{{ log.local_created|date:'Y-m-d' }}" style="display:flex;justify-content:space-between;padding:10px;border-bottom:1px solid rgba(255,255,255,0.03)">
+                    <div>
+                        <div style="font-weight:700">{{ log.computed_icon }} {{ log.meal_name }} <span class="muted" style="font-weight:600;font-size:12px">· {{ log.computed_type }}</span></div>
+                        <div class="log-meta">{{ log.local_created|date:"M d H:i T" }}</div>
+                    </div>
+                    <div style="text-align:right">
+                        <div style="font-weight:800">{{ log.calories }} kcal</div>
+                        <div class="log-meta">{{ log.protein_g }} g • {{ log.fat_g }} g</div>
+                    </div>
+                </div>
+            {% empty %}
+                <div class="muted">No meals logged yet.</div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    (function(){
+        try{
+            const macroCtx = document.getElementById('macroHistoryChart');
+            {% if total_today %}
+                const p = {{ total_today.protein_g|default:0 }};
+                const f = {{ total_today.fat_g|default:0 }};
+                const c = {{ total_today.carbs_g|default:0 }};
+            {% else %}
+                const p=0,f=0,c=0;
+            {% endif %}
+            if(macroCtx){
+                // compact, cleaner doughnut (legend hidden in favor of custom boxes)
+                new Chart(macroCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Protein','Fat','Carbs'],
+                        datasets: [{ data: [p,f,c], backgroundColor: ['#4fd1c5','#ffd166','#ffa69e'] }]
+                    },
+                    options: {
+                        cutout: '80%',
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: { callbacks: { label: function(ctx){ return ctx.label + ': ' + ctx.formattedValue + ' g' } } }
+                        },
+                        responsive: true,
+                        maintainAspectRatio: false
+                    }
+                });
+            }
+
+            // main trend chart (uses server-side series)
+            const trendCtx = document.getElementById('trendChart');
+            if(trendCtx){
+                const labels = [{% for s in series %}'{{ s.date|date:"M d" }}'{% if not forloop.last %},{% endif %}{% endfor %}];
+                const data = [{% for s in series %}{{ s.calories }}{% if not forloop.last %},{% endif %}{% endfor %}].map(v=>Number(v));
+                const prot = [{% for s in series %}{{ s.protein_g }}{% if not forloop.last %},{% endif %}{% endfor %}].map(v=>Number(v));
+                const fat = [{% for s in series %}{{ s.fat_g }}{% if not forloop.last %},{% endif %}{% endfor %}].map(v=>Number(v));
+                const carbs = [{% for s in series %}{{ s.carbs_g }}{% if not forloop.last %},{% endif %}{% endfor %}].map(v=>Number(v));
+
+                const hasData = data.some(v=>v>0);
+                const nod = document.getElementById('weeklyNoData');
+                if(!hasData){ if(nod) nod.style.display = 'flex'; }
+
+                const suggestedMax = Math.max({{ weekly_max_adj }}, ({{ goal }} * 1.05));
+                const stepSize = Math.max(1, Math.ceil(suggestedMax / 4));
+
+                const ctx = trendCtx.getContext ? trendCtx.getContext('2d') : null;
+                const grad = ctx ? (function(){const g=ctx.createLinearGradient(0,0,0,320); g.addColorStop(0,'rgba(255,122,154,0.32)'); g.addColorStop(1,'rgba(255,122,154,0.04)'); return g;}()) : '#ff7a9a';
+
+                const trendChart = new Chart(trendCtx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            { label: 'Calories', data: data, borderColor:'#ff7a9a', backgroundColor: grad, fill:true, tension:0.25, pointRadius:3, pointBackgroundColor:'#fff', pointBorderColor:'#ff7a9a' },
+                            { label: 'Goal', data: new Array(data.length).fill({{ goal }}), borderColor:'#00b4ff', borderDash:[6,6], pointRadius:0, fill:false }
+                        ]
+                    },
+                    options: {
+                        scales: { y: { beginAtZero:true, suggestedMax: suggestedMax, ticks:{ stepSize: stepSize } }, x:{ grid:{display:false} } },
+                        plugins: { legend:{display:false}, tooltip:{mode:'index',intersect:false,callbacks:{label:function(ctx){ return ctx.dataset.label + ': ' + ctx.parsed.y + ' kcal'; }}} },
+                        responsive:true, maintainAspectRatio:false,
+                        interaction:{ mode:'index', intersect:false },
+                        onHover: function(e, active){ const hb = document.getElementById('trendHoverBox'); if(active && active.length){ const idx = active[0].index; hb.style.display='block'; hb.innerHTML = '<div style="font-weight:800">'+labels[idx]+'</div><div style="font-size:13px;color:#9fb3d9">Calories: '+data[idx]+' kcal</div><div style="font-size:12px;color:#9fb3d9">Protein: '+prot[idx]+' g • Fat: '+fat[idx]+' g • Carbs: '+carbs[idx]+' g</div>'; } else { hb.style.display='none'; } }
+                    }
+                });
+            }
+
+            // meal type doughnut
+            const mealTypeCtx = document.getElementById('mealTypeChart');
+            if(mealTypeCtx){
+                const mtLabels = [{% for mt, val in meal_type_items %}'{{ mt }}'{% if not forloop.last %},{% endif %}{% endfor %}];
+                const mtData = [{% for mt, val in meal_type_items %}{{ val }}{% if not forloop.last %},{% endif %}{% endfor %}];
+                new Chart(mealTypeCtx, { type:'doughnut', data:{ labels:mtLabels, datasets:[{ data:mtData, backgroundColor:['#ffd166','#ffa69e','#4fd1c5','#a9def9','#ffd6a5'] }] }, options:{ plugins:{ legend:{display:false} }, cutout:'60%', responsive:true, maintainAspectRatio:false } });
+            }
+
+            // build calendar heatmap (LeetCode-style)
+            (function(){
+                const cal = {{ calendar_heatmap|safe }};
+                const grid = document.getElementById('calendarGrid');
+                const labels = document.getElementById('calendarLabels');
+                if(!grid || !cal || !cal.days) return;
+                grid.innerHTML = '';
+                labels.innerHTML = '';
+                const weeks = cal.weeks || 1;
+                const dayNames = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+                dayNames.forEach(n => { const el = document.createElement('div'); el.textContent = n[0]; el.style.color='#9fb3d9'; el.style.fontSize='12px'; el.style.height='14px'; el.style.margin='3px 0'; labels.appendChild(el); });
+                grid.style.gridTemplateRows = 'repeat(7,14px)';
+                grid.style.gridTemplateColumns = 'repeat('+weeks+',14px)';
+                const max = cal.max || 0;
+                const matrix = Array.from({length:weeks}, ()=> Array.from({length:7}, ()=> null));
+                cal.days.forEach(d => { if(typeof d.week === 'number' && typeof d.weekday === 'number') matrix[d.week][d.weekday] = d; });
+                let hasData = false;
+                // fixed bucket color mapping (stable across ranges)
+                function colorFor(cals){
+                    if(!cals || cals<=0) return 'rgba(255,255,255,0.02)';
+                    if(cals <= 50) return 'rgba(255,122,154,0.18)';
+                    if(cals <= 150) return 'rgba(255,122,154,0.36)';
+                    if(cals <= 300) return 'rgba(255,122,154,0.6)';
+                    return 'rgba(255,122,154,0.85)';
+                }
+                for(let w=0; w<weeks; w++){
+                    for(let wd=0; wd<7; wd++){
+                        const cell = document.createElement('div');
+                        cell.style.width='14px'; cell.style.height='14px'; cell.style.borderRadius='3px'; cell.style.margin='2px 0';
+                        const day = matrix[w][wd];
+                        if(day){
+                            cell.style.background = colorFor(day.calories);
+                            cell.title = day.date + ' — ' + day.calories + ' kcal';
+                            // make cells clickable: go to logs filtered for that date
+                            cell.style.cursor = 'pointer';
+                            cell.addEventListener('click', (function(d){ return function(){ window.location.href = '/analytics/logs/?date='+d; } })(day.date));
+                            hasData = hasData || day.calories>0;
+                        } else {
+                            cell.style.background = 'transparent';
+                        }
+                        grid.appendChild(cell);
+                    }
+                }
+                const legend = document.getElementById('heatLegend');
+                if(legend){
+                    legend.innerHTML = '<div style="margin-bottom:6px;color:#9fb3d9">Legend</div>';
+                    const buckets = [0,50,150,300];
+                    buckets.forEach(b => {
+                        const bg = colorFor(b || 1);
+                        legend.innerHTML += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><div style="width:20px;height:10px;border-radius:3px;background:'+bg+'"></div><div style="font-size:12px;color:#9fb3d9">'+b+(b===300?'+':'' )+' kcal</div></div>';
+                    });
+                }
+                const nod = document.getElementById('weeklyNoData');
+                if(nod) nod.style.display = hasData ? 'none' : 'flex';
+            })();
+
+            // setRange helper (reloads page with days param) + persist selection (validates input)
+            window.setRange = function(d){ try{ const s = String(d).trim(); if(!['7','14','30'].includes(s)) return; localStorage.setItem('history_days', s); const params = new URLSearchParams(window.location.search); const current = params.get('days'); // if already set to the same days, avoid reloading and just ensure the button is active
+                if(current === s){ try{ document.querySelectorAll('.range-btn').forEach(b=>{ if(String(b.dataset.days).trim() === s) b.classList.add('active'); else b.classList.remove('active'); }); showToast('Showing last '+s+' days'); }catch(e){ debugLog('setRange early return failed: '+e) } return; }
+                params.set('days', s); window.location.search = params.toString(); }catch(e){console.warn('setRange failed',e)} }
+
+            // if user has a saved range and URL does not specify it, apply it
+            // robust initialization of days param (avoid bad values/injection)
+            (function(){
+                try{
+                    const allowed = new Set(['7','14','30']);
+                    const params = new URLSearchParams(window.location.search);
+                    const daysParam = params.get('days');
+                    const stored = localStorage.getItem('history_days');
+
+                    // if stored value is invalid, remove it (prevent repeated bad redirects)
+                    if(stored && !allowed.has(stored)){
+                        try{ localStorage.removeItem('history_days'); }catch(e){}
+                    }
+
+                    // validate stored value
+                    const validStored = (stored && allowed.has(stored)) ? stored : null;
+
+                    // if missing or invalid, apply stored if valid; otherwise default to 30
+                    let target = null;
+                    if(!daysParam || !allowed.has(daysParam)){
+                        target = validStored || '30';
+                    }
+
+                    if(target){
+                        // avoid redirect loops
+                        if(!sessionStorage.getItem('history_redirected')){
+                            params.set('days', target);
+                            sessionStorage.setItem('history_redirected','1');
+                            window.location.search = params.toString();
+                        }
+                    }
+                }catch(e){ console.warn('history init days failed', e) }
+            })();
+
+            // replace: highlight active range button (uses data-days)
+            (function(){
+                function setActiveRangeButton(days){
+                    const norm = String(days || '').toString().trim();
+                    document.querySelectorAll('.range-btn').forEach(b=>{
+                        if(String(b.dataset.days || '').toString().trim() === norm) b.classList.add('active'); else b.classList.remove('active');
+                    });
+                }
+                // small debug helper
+                function debugLog(msg){ try{ console.debug && console.debug('[history]', msg); }catch(e){} }
+                // small toast helper for visible feedback
+                let __toastTimer = null;
+                function showToast(text, ms=1800){ try{ const t = document.getElementById('toast'); if(!t) return; t.textContent = text; t.style.display = 'block'; if(__toastTimer) clearTimeout(__toastTimer); __toastTimer = setTimeout(()=>{ t.style.display = 'none'; __toastTimer = null; }, ms); }catch(e){ debugLog('showToast failed: '+e) } }
+
+                // attach click handlers
+                document.querySelectorAll('.range-btn').forEach(btn=>{
+                    btn.addEventListener('click', function(){
+                        debugLog('range clicked: ' + String(btn.dataset.days));
+                        const d = btn.dataset.days;
+                        setActiveRangeButton(d);
+                        try{ setRange(Number(d)); }catch(e){ console.warn('setRange failed',e); }
+                    });
+                });
+
+                // attach click handlers
+                document.querySelectorAll('.range-btn').forEach(btn=>{
+                    btn.addEventListener('click', function(){
+                        const d = btn.dataset.days;
+                        setActiveRangeButton(d);
+                        try{ setRange(Number(d)); }catch(e){ console.warn('setRange failed',e); }
+                    });
+                });
+
+                // init active button from URL/localStorage/server
+                try{
+                    const params = new URLSearchParams(window.location.search);
+                    // normalize/trim the value from URL/localStorage/server to avoid mismatches
+                    const daysParam = (params.get('days') || localStorage.getItem('history_days') || '{{ series_days }}')?.toString().trim();
+                    setActiveRangeButton(daysParam);
+                }catch(e){ console.warn('init range button failed', e) }
+            })();
+
+            // CSV export — unified: attach to all .export-csv buttons (also wire top #downloadHistoryCsv)
+            (function(){
+                // build an array we can extend (NodeList isn't easy to push to directly)
+                const exportButtons = Array.from(document.querySelectorAll('.export-csv'));
+                const topExport = document.getElementById('downloadHistoryCsv');
+                if(topExport) exportButtons.push(topExport);
+                if(!exportButtons || !exportButtons.length) return;
+                exportButtons.forEach(function(btn){
+                    btn.addEventListener('click', function(){
+                        const rows = [['created_at','meal_name','calories','protein_g','fat_g','carbs_g','fiber_g']];
+                        {% for log in logs %}
+                            rows.push(['{{ log.local_created|date:"Y-m-d H:i:s" }}','{{ log.meal_name|escapejs }}','{{ log.calories }}','{{ log.protein_g }}','{{ log.fat_g }}','{{ log.carbs_g }}','{{ log.fiber_g }}']);
+                        {% endfor %}
+                        debugLog('Export CSV rows: ' + rows.length);
+                        showToast('Exporting CSV ('+rows.length+' rows)');
+                        const csv = rows.map(r => r.map(c=> '"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
+                        const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a'); a.href = url; a.download = 'meal_history.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+                    });
+                });
+            })();
+
+            // expand/collapse details
+            document.querySelectorAll('.log-item').forEach((el)=>{
+                el.addEventListener('click',function(){
+                    const detail = el.nextElementSibling;
+                    if(detail) detail.style.display = detail.style.display === 'none' ? 'block' : 'none';
+                });
+            });
+
+            // filter logs by date (client-side)
+            window.filterLogsByDate = function(d){
+                try{
+                    if(!d) return;
+                    document.querySelectorAll('#allMealsList [data-log-date]').forEach(el=>{
+                        el.style.display = el.getAttribute('data-log-date') === d ? 'flex' : 'none';
+                    });
+                    // scroll to top of list
+                    const list = document.getElementById('allMealsList'); if(list) list.scrollIntoView({behavior:'smooth'});
+                }catch(e){console.warn('filterLogsByDate failed',e)}
+            }
+            window.clearLogFilter = function(){
+                document.querySelectorAll('#allMealsList [data-log-date]').forEach(el=> el.style.display='flex');
+            }
+
+        }catch(e){console.warn('history page failed',e)}
+    })();
+</script>
+<script>
+(function(){
+    try{
+        const b = document.querySelector('.streak-badge[data-count]');
+        if(!b) return;
+        b.style.background = b.dataset.color || b.style.background;
+        const cur = Number(b.dataset.count || 0);
+        const key = 'fn_last_streak';
+        const prev = Number(localStorage.getItem(key) || 0);
+        if(cur > prev && prev >= 0){ b.classList.add('streak-increment'); setTimeout(()=>b.classList.remove('streak-increment'), 1400); }
+        localStorage.setItem(key, String(cur));
+    }catch(e){console.warn('streak init',e)} })();</script>
+})();
+</script>
+</body>
+</html>
