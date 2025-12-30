@@ -68,7 +68,7 @@
             {% if user.is_authenticated %}
             <div style="margin-left:12px;display:flex;align-items:center;gap:8px">
                 <div style="font-size:12px;color:#9fb3d9">Streak</div>
-                <a href="/analytics/logs/?date={{ streak_date }}" style="text-decoration:none">
+                <a href="/analytics/logs/" style="text-decoration:none">
                     <div class="streak-badge" data-count="{{ streak.count }}" data-color="{{ streak.color }}" role="img" aria-label="{{ streak.count }} day streak">
                         <span class="streak-fire">🔥</span>
                         <span class="streak-num">{{ streak.count }}</span>
@@ -116,7 +116,7 @@
             <div style="margin-top:10px;display:flex;flex-direction:column;gap:10px">
                 <div style="display:flex;justify-content:space-between"><div class="muted">Days with data</div><div style="font-weight:800">{{ days_with_data }}</div></div>
                 <div style="display:flex;justify-content:space-between"><div class="muted">Max / Day</div><div style="font-weight:800">{{ max_daily_calories }} kcal</div></div>
-                <div style="display:flex;justify-content:space-between"><div class="muted">Average / day (range)</div><div style="font-weight:800">{{ avg_calories }} kcal</div></div>
+                <div style="display:flex;justify-content:space-between"><div class="muted">Avg / day</div><div style="font-weight:800">{{ avg_calories }} kcal</div></div>
 
             </div>
         </div>
@@ -350,25 +350,29 @@
                 labels.innerHTML = '';
                 const weeks = cal.weeks || 1;
                 const dayNames = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-                dayNames.forEach(n => { const el = document.createElement('div'); el.textContent = n[0]; el.style.color='#9fb3d9'; el.style.fontSize='12px'; el.style.height='14px'; el.style.margin='3px 0'; labels.appendChild(el); });
-                grid.style.gridTemplateRows = 'repeat(7,14px)';
-                grid.style.gridTemplateColumns = 'repeat('+weeks+',14px)';
+                const fullNames = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+                dayNames.forEach((n,i) => { const el = document.createElement('div'); el.textContent = n; el.title = fullNames[i]; el.style.color='#9fb3d9'; el.style.fontSize='11px'; el.style.height='14px'; el.style.lineHeight='14px'; el.style.margin='3px 0'; labels.appendChild(el); });
+                // medium-sized heatmap boxes (taller than compact, smaller than large)
+                grid.style.gridTemplateRows = 'repeat(7,19.3px)';
+                grid.style.gridTemplateColumns = 'repeat('+weeks+',15.5px)';
                 const max = cal.max || 0;
                 const matrix = Array.from({length:weeks}, ()=> Array.from({length:7}, ()=> null));
                 cal.days.forEach(d => { if(typeof d.week === 'number' && typeof d.weekday === 'number') matrix[d.week][d.weekday] = d; });
                 let hasData = false;
-                // fixed bucket color mapping (stable across ranges)
+                // fixed bucket color mapping (stable across ranges) — more buckets with increasing intensity
                 function colorFor(cals){
-                    if(!cals || cals<=0) return 'rgba(255,255,255,0.02)';
-                    if(cals <= 50) return 'rgba(255,122,154,0.18)';
-                    if(cals <= 150) return 'rgba(255,122,154,0.36)';
-                    if(cals <= 300) return 'rgba(255,122,154,0.6)';
-                    return 'rgba(255,122,154,0.85)';
+                    if(!cals || cals <= 0) return 'rgba(255,255,255,0.02)';
+                    if(cals <= 200) return 'rgba(255,122,154,0.18)';     // very light
+                    if(cals <= 500) return 'rgba(255,102,135,0.32)';     // light
+                    if(cals <= 1000) return 'rgba(255,80,120,0.5)';      // medium
+                    if(cals <= 1400) return 'rgba(255,64,110,0.68)';     // strong
+                    if(cals <= 2000) return 'rgba(255,40,90,0.86)';      // very strong
+                    return 'rgba(255,20,60,0.98)';                       // extreme
                 }
                 for(let w=0; w<weeks; w++){
                     for(let wd=0; wd<7; wd++){
                         const cell = document.createElement('div');
-                        cell.style.width='14px'; cell.style.height='14px'; cell.style.borderRadius='3px'; cell.style.margin='2px 0';
+                        cell.style.width='14px'; cell.style.height='18px'; cell.style.borderRadius='3px'; cell.style.margin='3px 0';
                         const day = matrix[w][wd];
                         if(day){
                             cell.style.background = colorFor(day.calories);
@@ -386,10 +390,20 @@
                 const legend = document.getElementById('heatLegend');
                 if(legend){
                     legend.innerHTML = '<div style="margin-bottom:6px;color:#9fb3d9">Legend</div>';
-                    const buckets = [0,50,150,300];
+                    // New buckets: 0 (no color), 1-200, 201-500, 501-1000, 1001-1400, 1401-2000, >2000
+                    const buckets = [
+                        {label: '0 kcal', value: 0},
+                        {label: '1–200 kcal', value: 200},
+                        {label: '201–500 kcal', value: 500},
+                        {label: '501–1000 kcal', value: 1000},
+                        {label: '1001–1400 kcal', value: 1400},
+                        {label: '1401–2000 kcal', value: 2000},
+                        {label: '>2000 kcal', value: 999999}
+                    ];
+
                     buckets.forEach(b => {
-                        const bg = colorFor(b || 1);
-                        legend.innerHTML += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><div style="width:20px;height:10px;border-radius:3px;background:'+bg+'"></div><div style="font-size:12px;color:#9fb3d9">'+b+(b===300?'+':'' )+' kcal</div></div>';
+                        const bg = colorFor(b.value);
+                        legend.innerHTML += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px"><div style="width:20px;height:10px;border-radius:3px;background:'+bg+'"></div><div style="font-size:12px;color:#9fb3d9">'+b.label+'</div></div>';
                     });
                 }
                 const nod = document.getElementById('weeklyNoData');
@@ -477,10 +491,20 @@
                 if(!exportButtons || !exportButtons.length) return;
                 exportButtons.forEach(function(btn){
                     btn.addEventListener('click', function(){
-                                const rows = [['created_at','meal_name','calories','protein_g','fat_g','carbs_g','fiber_g']];
+                        const rows = [['created_at','meal_name','calories','protein_g','fat_g','carbs_g','fiber_g']];
                         const DASH_local = (function(){ try{ return JSON.parse(document.getElementById('history-data').textContent); }catch(e){ return { logs: [] }; } })();
                         const logsData = DASH_local.logs || [];
-                        logsData.forEach(l => rows.push([l.created_at, l.meal_name, l.calories, l.protein_g, l.fat_g, l.carbs_g, l.fiber_g]));
+                        logsData.forEach(function(l){
+                            const created = l.created_at || '';
+                            // sanitize meal name: remove emoji and trailing " · type"
+                            let name = String(l.meal_name || '').replace(/[\u{1F300}-\u{1F6FF}\u{1F900}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '').replace(/\s*·\s*.*$/, '').trim();
+                            const calories = (typeof l.calories !== 'undefined' && l.calories !== null) ? l.calories : '';
+                            const protein = (l.protein_g ?? l.protein ?? '');
+                            const fat = (l.fat_g ?? l.fat ?? '');
+                            const carbs = (l.carbs_g ?? l.carbs ?? '');
+                            const fiber = (l.fiber_g ?? l.fiber ?? '');
+                            rows.push([created, name, calories, protein, fat, carbs, fiber]);
+                        });
                         if(typeof debugLog === 'function') debugLog('Export CSV rows: ' + rows.length);
                         if(typeof showToast === 'function') showToast('Exporting CSV ('+rows.length+' rows)');
                         const csv = rows.map(r => r.map(c=> '"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');

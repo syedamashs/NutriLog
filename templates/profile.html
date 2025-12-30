@@ -42,7 +42,7 @@
             {% if user.is_authenticated %}
             <div style="display:flex;align-items:center;gap:8px">
                 <div style="font-size:12px;color:#9fb3d9">Streak</div>
-                <a href="/analytics/logs/?date={{ streak_date }}" style="text-decoration:none">
+                <a href="/analytics/logs/" style="text-decoration:none">
                     <div class="streak-badge" data-count="{{ streak.count }}" data-color="{{ streak.color }}" role="img" aria-label="{{ streak.count }} day streak">
                         <span class="streak-fire">🔥</span>
                         <span class="streak-num">{{ streak.count }}</span>

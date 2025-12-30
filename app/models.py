@@ -12,14 +12,9 @@ class MealLog(models.Model):
     fat_g = models.FloatField()
     carbs_g = models.FloatField()
     fiber_g = models.FloatField()
-
-    # JSON blob of items: [{"food":..., "grams":..., "nutrition":{...}}, ...]
     items_json = models.TextField(null=True, blank=True)
-
     created_at = models.DateTimeField(auto_now_add=True)
-    # Running total calories for that day up to this meal (computed server-side)
     running_calories = models.FloatField(default=0)
-    # Mark whether the user's daily goal was achieved for the date of this log (set by view logic)
     day_goal_achieved = models.BooleanField(default=False)
 
     def __str__(self):
