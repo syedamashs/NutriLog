@@ -107,7 +107,7 @@
             <div style="margin-top:12px;height:320px;position:relative">
                 <canvas id="trendChart" style="width:100%;height:100%"></canvas>
                 <div id="trendHoverBox" style="position:absolute;right:12px;top:12px;background:rgba(255,255,255,0.03);padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);color:#e6eef8;display:none"></div>
-                <div id="weeklyNoData" style="display:none;position:absolute;left:0;right:0;top:0;bottom:0;display:flex;align-items:center;justify-content:center;color:#9fb3d9">No recent data</div>
+                <div id="weeklyNoData" style="display:none;position:absolute;left:0;right:0;top:0;bottom:0;align-items:center;justify-content:center;color:#9fb3d9">No recent data</div>
             </div>
         </div>
 
@@ -185,18 +185,42 @@
 </div>
 
 <!-- Chart.js CDN -->
+
+<script id="history-data" type="application/json">
+{
+  "total_today": { "protein": {{ total_today.protein_g|default:0 }}, "fat": {{ total_today.fat_g|default:0 }}, "carbs": {{ total_today.carbs_g|default:0 }} },
+  "goal": {{ goal|default:2000 }},
+  "weekly_max_adj": {{ weekly_max_adj|default:0 }},
+  "series_days": {{ series_days|default:30 }},
+  "series": [
+    {% for s in series %}
+      {"date":"{{ s.date|date:'M d'|escapejs }}","calories":{{ s.calories }},"protein":{{ s.protein_g }},"fat":{{ s.fat_g }},"carbs":{{ s.carbs_g }}}{% if not forloop.last %},{% endif %}
+    {% endfor %}
+  ],
+  "meal_type_items": [
+    {% for mt, val in meal_type_items %}
+      ["{{ mt|escapejs }}", {{ val }}]{% if not forloop.last %},{% endif %}
+    {% endfor %}
+  ],
+  "logs": [
+    {% for log in logs %}
+      {"created_at":"{{ log.local_created|date:'Y-m-d H:i:s' }}","meal_name":"{{ log.meal_name|escapejs }}","calories":{{ log.calories }},"protein_g":{{ log.protein_g }},"fat_g":{{ log.fat_g }},"carbs_g":{{ log.carbs_g }},"fiber_g":{{ log.fiber_g }}}{% if not forloop.last %},{% endif %}
+    {% endfor %}
+  ]
+}
+</script>
+
+{{ calendar_heatmap|default:"{}"|json_script:"calendar-data" }}
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     (function(){
         try{
             const macroCtx = document.getElementById('macroHistoryChart');
-            {% if total_today %}
-                const p = {{ total_today.protein_g|default:0 }};
-                const f = {{ total_today.fat_g|default:0 }};
-                const c = {{ total_today.carbs_g|default:0 }};
-            {% else %}
-                const p=0,f=0,c=0;
-            {% endif %}
+            const DASH = (function(){ try{ return JSON.parse(document.getElementById('history-data').textContent); }catch(e){ return { total_today: {protein:0,fat:0,carbs:0}, series:[], meal_type_items:[], logs:[] }; } })();
+            const p = Number(DASH.total_today && DASH.total_today.protein) || 0;
+            const f = Number(DASH.total_today && DASH.total_today.fat) || 0;
+            const c = Number(DASH.total_today && DASH.total_today.carbs) || 0;
             if(macroCtx){
                 // compact, cleaner doughnut (legend hidden in favor of custom boxes)
                 new Chart(macroCtx, {
@@ -220,17 +244,18 @@
             // main trend chart (uses server-side series)
             const trendCtx = document.getElementById('trendChart');
             if(trendCtx){
-                const labels = [{% for s in series %}'{{ s.date|date:"M d" }}'{% if not forloop.last %},{% endif %}{% endfor %}];
-                const data = [{% for s in series %}{{ s.calories }}{% if not forloop.last %},{% endif %}{% endfor %}].map(v=>Number(v));
-                const prot = [{% for s in series %}{{ s.protein_g }}{% if not forloop.last %},{% endif %}{% endfor %}].map(v=>Number(v));
-                const fat = [{% for s in series %}{{ s.fat_g }}{% if not forloop.last %},{% endif %}{% endfor %}].map(v=>Number(v));
-                const carbs = [{% for s in series %}{{ s.carbs_g }}{% if not forloop.last %},{% endif %}{% endfor %}].map(v=>Number(v));
+                // Use series from history-data JSON
+                const labels = (DASH.series || []).map(s => s.date);
+                const data = (DASH.series || []).map(s => Number(s.calories||0));
+                const prot = (DASH.series || []).map(s => Number(s.protein||0));
+                const fat = (DASH.series || []).map(s => Number(s.fat||0));
+                const carbs = (DASH.series || []).map(s => Number(s.carbs||0));
 
                 const hasData = data.some(v=>v>0);
                 const nod = document.getElementById('weeklyNoData');
                 if(!hasData){ if(nod) nod.style.display = 'flex'; }
 
-                const suggestedMax = Math.max({{ weekly_max_adj }}, ({{ goal }} * 1.05));
+                const suggestedMax = Math.max(Number(DASH.weekly_max_adj || 0), Number((DASH.goal || 2000) * 1.05));
                 const stepSize = Math.max(1, Math.ceil(suggestedMax / 4));
 
                 const ctx = trendCtx.getContext ? trendCtx.getContext('2d') : null;
@@ -242,9 +267,10 @@
                         labels: labels,
                         datasets: [
                             { label: 'Calories', data: data, borderColor:'#ff7a9a', backgroundColor: grad, fill:true, tension:0.25, pointRadius:3, pointBackgroundColor:'#fff', pointBorderColor:'#ff7a9a' },
-                            { label: 'Goal', data: new Array(data.length).fill({{ goal }}), borderColor:'#00b4ff', borderDash:[6,6], pointRadius:0, fill:false }
+                            { label: 'Goal', data: new Array(data.length).fill(DASH.goal || 2000), borderColor:'#00b4ff', borderDash:[6,6], pointRadius:0, fill:false }
                         ]
                     },
+
                     options: {
                         scales: { y: { beginAtZero:true, suggestedMax: suggestedMax, ticks:{ stepSize: stepSize } }, x:{ grid:{display:false} } },
                         plugins: { legend:{display:false}, tooltip:{mode:'index',intersect:false,callbacks:{label:function(ctx){ return ctx.dataset.label + ': ' + ctx.parsed.y + ' kcal'; }}} },
@@ -258,14 +284,15 @@
             // meal type doughnut
             const mealTypeCtx = document.getElementById('mealTypeChart');
             if(mealTypeCtx){
-                const mtLabels = [{% for mt, val in meal_type_items %}'{{ mt }}'{% if not forloop.last %},{% endif %}{% endfor %}];
-                const mtData = [{% for mt, val in meal_type_items %}{{ val }}{% if not forloop.last %},{% endif %}{% endfor %}];
+                const mtLabels = (DASH.meal_type_items || []).map(x=>x[0]);
+                const mtData = (DASH.meal_type_items || []).map(x=>x[1]);
                 new Chart(mealTypeCtx, { type:'doughnut', data:{ labels:mtLabels, datasets:[{ data:mtData, backgroundColor:['#ffd166','#ffa69e','#4fd1c5','#a9def9','#ffd6a5'] }] }, options:{ plugins:{ legend:{display:false} }, cutout:'60%', responsive:true, maintainAspectRatio:false } });
             }
 
             // build calendar heatmap (LeetCode-style)
             (function(){
-                const cal = {{ calendar_heatmap|safe }};
+                const calEl = document.getElementById('calendar-data');
+                const cal = (function(){ try{ return calEl ? JSON.parse(calEl.textContent) : { days: [] }; }catch(e){ return { days: [] }; } })();
                 const grid = document.getElementById('calendarGrid');
                 const labels = document.getElementById('calendarLabels');
                 if(!grid || !cal || !cal.days) return;
@@ -321,7 +348,7 @@
 
             // setRange helper (reloads page with days param) + persist selection (validates input)
             window.setRange = function(d){ try{ const s = String(d).trim(); if(!['7','14','30'].includes(s)) return; localStorage.setItem('history_days', s); const params = new URLSearchParams(window.location.search); const current = params.get('days'); // if already set to the same days, avoid reloading and just ensure the button is active
-                if(current === s){ try{ document.querySelectorAll('.range-btn').forEach(b=>{ if(String(b.dataset.days).trim() === s) b.classList.add('active'); else b.classList.remove('active'); }); showToast('Showing last '+s+' days'); }catch(e){ debugLog('setRange early return failed: '+e) } return; }
+                if(current === s){ try{ document.querySelectorAll('.range-btn').forEach(b=>{ if(String(b.dataset.days).trim() === s) b.classList.add('active'); else b.classList.remove('active'); }); if(typeof showToast === 'function') showToast('Showing last '+s+' days'); }catch(e){ if(typeof debugLog === 'function') debugLog('setRange early return failed: '+e) } return; }
                 params.set('days', s); window.location.search = params.toString(); }catch(e){console.warn('setRange failed',e)} }
 
             // if user has a saved range and URL does not specify it, apply it
@@ -372,19 +399,10 @@
                 let __toastTimer = null;
                 function showToast(text, ms=1800){ try{ const t = document.getElementById('toast'); if(!t) return; t.textContent = text; t.style.display = 'block'; if(__toastTimer) clearTimeout(__toastTimer); __toastTimer = setTimeout(()=>{ t.style.display = 'none'; __toastTimer = null; }, ms); }catch(e){ debugLog('showToast failed: '+e) } }
 
-                // attach click handlers
+                // attach click handlers (single binding)
                 document.querySelectorAll('.range-btn').forEach(btn=>{
                     btn.addEventListener('click', function(){
-                        debugLog('range clicked: ' + String(btn.dataset.days));
-                        const d = btn.dataset.days;
-                        setActiveRangeButton(d);
-                        try{ setRange(Number(d)); }catch(e){ console.warn('setRange failed',e); }
-                    });
-                });
-
-                // attach click handlers
-                document.querySelectorAll('.range-btn').forEach(btn=>{
-                    btn.addEventListener('click', function(){
+                        debugLog && debugLog('range clicked: ' + String(btn.dataset.days));
                         const d = btn.dataset.days;
                         setActiveRangeButton(d);
                         try{ setRange(Number(d)); }catch(e){ console.warn('setRange failed',e); }
@@ -395,7 +413,7 @@
                 try{
                     const params = new URLSearchParams(window.location.search);
                     // normalize/trim the value from URL/localStorage/server to avoid mismatches
-                    const daysParam = (params.get('days') || localStorage.getItem('history_days') || '{{ series_days }}')?.toString().trim();
+                    const daysParam = (params.get('days') || localStorage.getItem('history_days') || String(DASH.series_days || 30))?.toString().trim();
                     setActiveRangeButton(daysParam);
                 }catch(e){ console.warn('init range button failed', e) }
             })();
@@ -409,12 +427,12 @@
                 if(!exportButtons || !exportButtons.length) return;
                 exportButtons.forEach(function(btn){
                     btn.addEventListener('click', function(){
-                        const rows = [['created_at','meal_name','calories','protein_g','fat_g','carbs_g','fiber_g']];
-                        {% for log in logs %}
-                            rows.push(['{{ log.local_created|date:"Y-m-d H:i:s" }}','{{ log.meal_name|escapejs }}','{{ log.calories }}','{{ log.protein_g }}','{{ log.fat_g }}','{{ log.carbs_g }}','{{ log.fiber_g }}']);
-                        {% endfor %}
-                        debugLog('Export CSV rows: ' + rows.length);
-                        showToast('Exporting CSV ('+rows.length+' rows)');
+                                const rows = [['created_at','meal_name','calories','protein_g','fat_g','carbs_g','fiber_g']];
+                        const DASH_local = (function(){ try{ return JSON.parse(document.getElementById('history-data').textContent); }catch(e){ return { logs: [] }; } })();
+                        const logsData = DASH_local.logs || [];
+                        logsData.forEach(l => rows.push([l.created_at, l.meal_name, l.calories, l.protein_g, l.fat_g, l.carbs_g, l.fiber_g]));
+                        if(typeof debugLog === 'function') debugLog('Export CSV rows: ' + rows.length);
+                        if(typeof showToast === 'function') showToast('Exporting CSV ('+rows.length+' rows)');
                         const csv = rows.map(r => r.map(c=> '"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
                         const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
                         const url = URL.createObjectURL(blob);
@@ -454,13 +472,13 @@
     try{
         const b = document.querySelector('.streak-badge[data-count]');
         if(!b) return;
-        b.style.background = b.dataset.color || b.style.background;
+        b.style.background = b.dataset.color || '#00b4ff';
         const cur = Number(b.dataset.count || 0);
         const key = 'fn_last_streak';
         const prev = Number(localStorage.getItem(key) || 0);
         if(cur > prev && prev >= 0){ b.classList.add('streak-increment'); setTimeout(()=>b.classList.remove('streak-increment'), 1400); }
         localStorage.setItem(key, String(cur));
-    }catch(e){console.warn('streak init',e)} })();</script>
+    }catch(e){console.warn('streak init',e)}
 })();
 </script>
 </body>
