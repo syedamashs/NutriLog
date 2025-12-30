@@ -27,6 +27,14 @@
         .streak-increment{animation:streak-pop .95s cubic-bezier(.2,.9,.2,1)}
         @keyframes streak-pop{0%{transform:scale(1);opacity:1}40%{transform:scale(1.28);opacity:1}100%{transform:scale(1);opacity:1}}
         .muted-small{color:#9fb3d9;font-size:13px}
+        /* Formatted details for meal log items */
+        .log-details{margin-top:8px}
+        .log-details table{width:100%;border-collapse:collapse;margin-top:6px}
+        .log-details th{padding:8px 10px;text-align:left;font-weight:700;background:rgba(255,255,255,0.02)}
+        .log-details td{padding:8px 10px;border-bottom:1px solid rgba(255,255,255,0.03)}
+        .log-details .muted{color:#9fb3d9}
+        .log-details pre{white-space:pre-wrap;font-family:monospace;background:rgba(0,0,0,0.06);padding:8px;border-radius:6px;margin:0}
+        
     </style>
 </head>
 <body>
@@ -77,7 +85,15 @@
                     <td>{{ log.protein_g }} g • {{ log.fat_g }} g • {{ log.carbs_g }} g</td>
                     <td><button class="showItems">Show</button></td>
                 </tr>
-                <tr class="details" style="display:none"><td colspan="5">{% if log.items_json %}{{ log.items_json|linebreaksbr }}{% else %}<span class="muted">No details</span>{% endif %}</td></tr>
+                <tr class="details" style="display:none">
+                    <td colspan="5">
+                        {% if log.items_json %}
+                            <div class="log-details" data-items-json='{{ log.items_json|escapejs }}'></div>
+                        {% else %}
+                            <span class="muted">No details</span>
+                        {% endif %}
+                    </td>
+                </tr>                                
                 {% empty %}
                 <tr><td colspan="5" class="muted">No logs found.</td></tr>
                 {% endfor %}
@@ -98,13 +114,90 @@
             if(d && date !== d) ok = false;
             if(q && !name.includes(q)) ok = false;
             tr.style.display = ok ? '' : 'none';
-            const detail = tr.nextElementSibling; if(detail && detail.classList.contains('details')) detail.style.display = ok ? '' : 'none';
+            // Always keep the details row hidden when applying filters so the "Show" button
+            // consistently controls visibility (avoids appearing to 'not work')
+            const detail = tr.nextElementSibling; if(detail && detail.classList.contains('details')) detail.style.display = 'none';
+            // Ensure the toggle button text resets to 'Show' so behavior is consistent after filtering
+            const btn = tr.querySelector('.showItems'); if(btn) btn.textContent = 'Show';
         });
         document.getElementById('count').textContent = document.querySelectorAll('#logsTable tbody tr:not(.details):not([style*="display:none"])').length;
     }
-    function clearFilters(){ document.getElementById('filterDate').value = '{{ now|date:"Y-m-d" }}'; document.getElementById('q').value=''; applyFilters(); }
-    // toggle details rows
-    document.querySelectorAll('.showItems').forEach(b=> b.addEventListener('click', function(){ const tr = this.closest('tr'); const det = tr.nextElementSibling; if(det) det.style.display = det.style.display==='none' ? '' : 'none'; }));
+    function clearFilters(){ document.getElementById('filterDate').value = ''; document.getElementById('q').value=''; applyFilters(); }
+    // toggle details rows and render formatted items on demand
+    document.querySelectorAll('.showItems').forEach(b=> b.addEventListener('click', function(){
+        const tr = this.closest('tr');
+        const det = tr.nextElementSibling;
+        if(!det) return;
+        // if showing now, populate the details if not yet done
+        const willShow = (det.style.display === 'none' || getComputedStyle(det).display === 'none');
+        if(willShow){
+            const container = det.querySelector('.log-details');
+            if(container && !container.dataset.rendered){
+                try{
+                    const raw = container.getAttribute('data-items-json') || '[]';
+
+                    // Robust parsing: handle normal JSON, double-encoded JSON (stringified twice),
+                    // and common escaped unicode sequences like \u0022 produced by escapejs.
+                    function tryParse(s){
+                        try{ let v = JSON.parse(s); if(typeof v === 'string'){ try{ v = JSON.parse(v); }catch(_){} } return v; }catch(e){}
+                        try{ const replaced = s.replace(/\\u0022/g,'"'); let v = JSON.parse(replaced); if(typeof v === 'string'){ try{ v = JSON.parse(v); }catch(_){} } return v; }catch(e){}
+                        try{ return JSON.parse(JSON.parse(s)); }catch(e){}
+                        return null;
+                    }
+
+                    function unescapeReadable(s){
+                        try{
+                            return s.replace(/\\u([0-9a-fA-F]{4})/g, function(_,m){ return String.fromCharCode(parseInt(m,16)); })
+                                    .replace(/\\n/g,'\n').replace(/\\"/g,'"').replace(/\\\\/g,'\\');
+                        }catch(e){ return s; }
+                    }
+
+                    const items = tryParse(raw);
+                    if(Array.isArray(items) && items.length){
+                        const table = document.createElement('table');
+                        const thead = document.createElement('thead');
+                        thead.innerHTML = '<tr><th>Food</th><th style="width:72px">g</th><th>Calories</th><th>Protein</th><th>Fat</th><th>Carbs</th><th>Fiber</th></tr>';
+                        table.appendChild(thead);
+                        const tbody = document.createElement('tbody');
+                        items.forEach(it=>{
+                            const r = document.createElement('tr');
+                            const calories = it.nutrition && (it.nutrition.calories || it.nutrition.calories === 0) ? (it.nutrition.calories + ' kcal') : '—';
+                            const protein = it.nutrition && (it.nutrition.protein_g || it.nutrition.protein_g === 0) ? (it.nutrition.protein_g + ' g') : '—';
+                            const fat = it.nutrition && (it.nutrition.fat_g || it.nutrition.fat_g === 0) ? (it.nutrition.fat_g + ' g') : '—';
+                            const carbs = it.nutrition && (it.nutrition.carbs_g || it.nutrition.carbs_g === 0) ? (it.nutrition.carbs_g + ' g') : '—';
+                            const fiber = it.nutrition && (it.nutrition.fiber_g || it.nutrition.fiber_g === 0) ? (it.nutrition.fiber_g + ' g') : '—';
+                            r.innerHTML = '<td>'+ (it.food || '—') + '</td>'+
+                                          '<td>'+ (it.grams || '—') + '</td>'+
+                                          '<td>'+ calories + '</td>'+
+                                          '<td>'+ protein + '</td>'+
+                                          '<td>'+ fat + '</td>'+
+                                          '<td>'+ carbs + '</td>'+
+                                          '<td>'+ fiber + '</td>';
+                            tbody.appendChild(r);
+                        });
+                        table.appendChild(tbody);
+                        container.appendChild(table);
+                    } else if(items && typeof items === 'object'){
+                        // single object or keyed object — pretty-print
+                        container.innerHTML = '<pre>'+ JSON.stringify(items, null, 2) +'</pre>';
+                    } else {
+                        const rawText = container.getAttribute('data-items-json') || '';
+                        container.innerHTML = '<pre>'+ unescapeReadable(rawText) +'</pre>';
+                        console.warn('Failed to parse items_json for log; showing raw content');
+                    }
+                }catch(e){
+                    // final fallback: show raw readable text
+                    const rawText = container.getAttribute('data-items-json') || '';
+                    container.innerHTML = '<pre>'+ rawText +'</pre>';
+                    console.warn('Unexpected error rendering log details', e);
+                }
+                container.dataset.rendered = '1';
+            }
+        }
+        det.style.display = willShow ? '' : 'none';
+        // Update the clicked button label to reflect current state
+        this.textContent = willShow ? 'Hide' : 'Show';
+    }));
     // CSV export
     document.getElementById('exportCsv').addEventListener('click', function(){
         const rows = [['created_at','meal_name','calories','protein_g','fat_g','carbs_g','fiber_g']];

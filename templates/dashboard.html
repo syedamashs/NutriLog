@@ -391,6 +391,30 @@
 </div>
 
 <!-- Chart.js CDN -->
+<script id="dashboard-data" type="application/json">
+{
+  "total": {
+    "calories": {{ total.calories|default:0 }},
+    "protein": {{ total.protein_g|default:0 }},
+    "fat": {{ total.fat_g|default:0 }},
+    "carbs": {{ total.carbs_g|default:0 }},
+    "fiber": {{ total.fiber_g|default:0 }}
+  },
+  "items": [
+    {% for item in items %}
+    {
+      "food": "{{ item.food|escapejs }}",
+      "grams": {{ item.grams|default:0 }},
+      "calories": {{ item.nutrition.calories|default:0 }},
+      "protein": {{ item.nutrition.protein_g|default:0 }},
+      "fat": {{ item.nutrition.fat_g|default:0 }},
+      "carbs": {{ item.nutrition.carbs_g|default:0 }},
+      "fiber": {{ item.nutrition.fiber_g|default:0 }}
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+  ]
+}
+</script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
@@ -444,90 +468,81 @@
         }
     })();
 
-    {% if total %}
-    // Populate values (guarded)
-    (function(){
-        const cEl = document.getElementById('caloriesVal');
-        const pEl = document.getElementById('proteinVal');
-        const fEl = document.getElementById('fatVal');
-        if(cEl) cEl.textContent = '{{ total.calories }} kcal';
-        if(pEl) pEl.textContent = '{{ total.protein_g }} g';
-        if(fEl) fEl.textContent = '{{ total.fat_g }} g';
-    })();
-
-    // Chart data (guarded)
+    // Read dashboard data (safe JSON) and populate UI
     (function(){
         try{
-            const c = document.getElementById('macroChart');
-            if(c){
-                new Chart(c, {
-                    type: 'doughnut',
-                    data: {
-                        labels: ['Protein (g)','Fat (g)','Carbs (g)'],
-                        datasets: [{
-                            data: [{{ total.protein_g }}, {{ total.fat_g }}, {{ total.carbs_g }}],
-                            backgroundColor: ['#4fd1c5','#ffd166','#ffa69e'],
-                            borderWidth: 0
-                        }]
-                    },
-                    options: {cutout: '70%',plugins: { legend: {display:false} }}
+            const DASH = (function(){
+                try{ return JSON.parse(document.getElementById('dashboard-data').textContent); }catch(e){ return { total: null, items: [] }; }
+            })();
+
+            // Populate visible totals
+            (function(){
+                const cEl = document.getElementById('caloriesVal');
+                const pEl = document.getElementById('proteinVal');
+                const fEl = document.getElementById('fatVal');
+                const total = DASH && DASH.total ? DASH.total : null;
+                if(cEl) cEl.textContent = total && total.calories ? (total.calories + ' kcal') : '—';
+                if(pEl) pEl.textContent = total && total.protein ? (total.protein + ' g') : '—';
+                if(fEl) fEl.textContent = total && total.fat ? (total.fat + ' g') : '—';
+            })();
+
+            // Macro doughnut chart
+            (function(){
+                const total = DASH && DASH.total ? DASH.total : {protein:0,fat:0,carbs:0};
+                const c = document.getElementById('macroChart');
+                if(c){
+                    new Chart(c, {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['Protein (g)','Fat (g)','Carbs (g)'],
+                            datasets: [{
+                                data: [Number(total.protein)||0, Number(total.fat)||0, Number(total.carbs)||0],
+                                backgroundColor: ['#4fd1c5','#ffd166','#ffa69e'],
+                                borderWidth: 0
+                            }]
+                        },
+                        options: {cutout: '70%',plugins: { legend: {display:false} }}
+                    });
+                }
+            })();
+        }catch(err){console.warn('dashboard data populate failed:',err)}
+    })();
+
+    // Additional charts in left panel (quick insights) and CSV export — use DASH items
+    (function(){
+        try{
+            const DASH = (function(){
+                try{ return JSON.parse(document.getElementById('dashboard-data').textContent); }catch(e){ return { items: [] }; }
+            })();
+            const items = DASH.items || [];
+            const itemLabels = items.length ? items.map(it => it.food || '—') : ['—'];
+            const itemCals = items.length ? items.map(it => Number(it.calories) || 0) : [0];
+
+            // Item calories horizontal chart
+            const ctxItem = document.getElementById('itemCalChart');
+            if(ctxItem){
+                new Chart(ctxItem, {
+                    type:'bar',
+                    data:{labels:itemLabels,datasets:[{label:'Calories',data:itemCals,backgroundColor:'#ff7a9a'}]},
+                    options:{indexAxis:'y',scales:{x:{beginAtZero:true}},plugins:{legend:{display:false}},responsive:true,maintainAspectRatio:false}
                 });
             }
-        }catch(err){console.warn('macroChart failed:',err)}
-    })();
-    {% else %}
-    // default empty chart (guarded)
-    (function(){
-        try{
-            const c = document.getElementById('macroChart');
-            if(c){
-                new Chart(c, {type:'doughnut',data:{labels:['Protein','Fat','Carbs'],datasets:[{data:[0,0,0],backgroundColor:['#4fd1c5','#ffd166','#ffa69e']}]},options:{cutout:'70%',plugins:{legend:{display:false}}}});
-            }
-        }catch(err){console.warn('macroChart failed:',err)}
-    })();
-    {% endif %}
 
-    // Additional charts in left panel (quick insights)
-    (function(){
-        try{
-        {% if items %}
-            const itemLabels = [{% for item in items %}'{{ item.food|escapejs }}'{% if not forloop.last %},{% endif %}{% endfor %}];
-            const itemCals   = [{% for item in items %}{{ item.nutrition.calories|default:0 }}{% if not forloop.last %},{% endif %}{% endfor %}];
-        {% else %}
-            const itemLabels = ['—'];
-            const itemCals = [0];
-        {% endif %}
-
-
-        // Item calories horizontal chart
-        const ctxItem = document.getElementById('itemCalChart');
-        if(ctxItem){
-            new Chart(ctxItem, {
-                type:'bar',
-                data:{labels:itemLabels,datasets:[{label:'Calories',data:itemCals,backgroundColor:'#ff7a9a'}]},
-                options:{indexAxis:'y',scales:{x:{beginAtZero:true}},plugins:{legend:{display:false}},responsive:true,maintainAspectRatio:false}
-            });
-        }
-        }catch(err){console.warn('left panel charts failed:',err)}
-    })();
-
-    // CSV export for nutrition summary
-    (function(){
-        try{
+            // CSV export for nutrition summary — build from DASH
             const btn = document.getElementById('downloadCsv');
-            if(!btn) return;
-            btn.addEventListener('click', function(){
-                const rows = [['food','grams','calories','protein_g','fat_g','carbs_g','fiber_g']];
-                {% for item in items %}
-                    rows.push(['{{ item.food|escapejs }}', '{{ item.grams }}', '{{ item.nutrition.calories }}','{{ item.nutrition.protein_g }}','{{ item.nutrition.fat_g }}','{{ item.nutrition.carbs_g }}','{{ item.nutrition.fiber_g }}']);
-                {% endfor %}
-                rows.push(['Total','','{{ total.calories }}','{{ total.protein_g }}','{{ total.fat_g }}','{{ total.carbs_g }}','{{ total.fiber_g }}']);
-                const csv = rows.map(r => r.map(c=> '"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
-                const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a'); a.href = url; a.download = 'nutrition_summary.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
-            });
-        }catch(e){console.warn('csv export failed',e)}
+            if(btn){
+                btn.addEventListener('click', function(){
+                    const rows = [['food','grams','calories','protein_g','fat_g','carbs_g','fiber_g']];
+                    items.forEach(i => rows.push([i.food || '', i.grams || '', i.calories || '', i.protein || '', i.fat || '', i.carbs || '', i.fiber || '']));
+                    const total = DASH.total || null;
+                    if(total) rows.push(['Total','', total.calories || '', total.protein || '', total.fat || '', total.carbs || '', total.fiber || '']);
+                    const csv = rows.map(r => r.map(c=> '"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
+                    const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+                    const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'nutrition_summary.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+                });
+            }
+
+        }catch(err){console.warn('left panel charts / csv failed:',err)}
     })();
 
 
