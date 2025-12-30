@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 
+# MealLog_Model
 class MealLog(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     meal_name = models.CharField(max_length=100)
@@ -25,7 +26,7 @@ class MealLog(models.Model):
         return f"{self.user.username} - {self.meal_name} - {self.created_at}"
 
 
-# Simple user profile to store additional personal attributes used for calculations
+# Profile_Model
 class Profile(models.Model):
     SEX_CHOICES = (
         ('M', 'Male'),

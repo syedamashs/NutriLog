@@ -2,7 +2,6 @@ from django.shortcuts import render, redirect
 from django.core.files.storage import FileSystemStorage
 from django.contrib.auth.decorators import login_required
 from django.utils.timezone import now
-
 from .yolo import predict_foods
 from .recipe import get_recipe
 from .nutrition import (
@@ -160,6 +159,8 @@ def recompute_day_goal_for_date(user, d):
         return bool(achieved_once)
     except Exception:
         return False
+    
+#History
 @login_required
 def history(request):
     # analytics parameters (robust parsing)
@@ -416,12 +417,13 @@ def history(request):
     return render(request, "history.html", context)
 
 
+#Analytics
 @login_required
 def analytics(request):
     # alias to the main analytics/history implementation
     return history(request)
 
-
+#Analytics_Logs
 @login_required
 def analytics_logs(request):
     tz = ZoneInfo('Asia/Kolkata')

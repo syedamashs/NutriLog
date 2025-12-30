@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.urls import reverse
 from .models import Profile
 
+#Profile_View
 @login_required(login_url='/login/')
 def profile_view(request):
     user = request.user
