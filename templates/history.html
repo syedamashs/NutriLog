@@ -11,6 +11,16 @@
         .header{display:flex;align-items:center;justify-content:space-between;gap:12px}
         .title{font-size:20px;font-weight:700}
         .muted{color:#9fb3d9}
+        .logo{width:64px;height:64px;border-radius:10px;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,0.03);box-shadow:0 8px 24px rgba(0,0,0,0.25);transition:transform .32s cubic-bezier(.2,.9,.3,1)}
+        .logo img{width:100%;height:100%;object-fit:cover}
+        .logo-fallback{font-weight:900;font-size:18px}
+        .logo:hover{transform:translateY(-8px) scale(1.22) rotate(-8deg)}
+        .profile-menu{position:relative}
+        .profile-avatar{width:36px;height:36px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:linear-gradient(90deg,#ffd6a5,#ff7a9a);color:#071028;font-weight:800;border:1px solid rgba(255,255,255,0.03);cursor:pointer}
+        .profile-dropdown{position:absolute;right:0;top:44px;background:#071022;border:1px solid rgba(255,255,255,0.04);padding:8px;border-radius:8px;min-width:140px;display:none;z-index:999}
+        .profile-dropdown a{display:block;padding:8px;color:#e6eef8;text-decoration:none;border-radius:6px}
+        .profile-dropdown a:hover{background:rgba(255,255,255,0.02)}
+        .controls{display:flex;align-items:center}
 
         .top-grid{display:grid;grid-template-columns:1fr 380px;gap:18px;margin-top:18px}
         .card{background:rgba(255,255,255,0.03);padding:18px;border-radius:12px;border:1px solid rgba(255,255,255,0.03)}
@@ -46,9 +56,12 @@
 <div class="container">
     <div id="toast" aria-live="polite" style="position:fixed;left:50%;transform:translateX(-50%);bottom:28px;background:rgba(7,16,40,0.98);color:#00b4ff;padding:10px 14px;border-radius:10px;box-shadow:0 6px 18px rgba(0,0,0,0.4);display:none;font-weight:700;z-index:9999"></div> 
     <div class="header">
-        <div>
-            <div class="title">Meal History</div>
-            <div class="muted">Overview of your past meals and daily totals</div>
+        <div style="display:flex;align-items:center;gap:12px">
+            <div class="logo"><img src="/data/nutrilog_logo.png" alt="NutriLog" onerror="this.style.display='none'; this.parentElement.querySelector('.logo-fallback').style.display='flex'"/><div class="logo-fallback" style="display:none;align-items:center;justify-content:center;width:100%;height:100%;font-weight:800;color:#fff">NL</div></div>
+            <div>
+                <div class="title">Meal History</div>
+                <div class="muted">Overview of your past meals and daily totals</div>
+            </div>
         </div>
         <div class="controls">
             <a href="/" class="muted" style="background:transparent;border-radius:8px;padding:8px 10px;border:1px solid rgba(255,255,255,0.03);color:#9fb3d9;text-decoration:none">Back to Dashboard</a>
@@ -61,6 +74,15 @@
                         <span class="streak-num">{{ streak.count }}</span>
                     </div>
                 </a>
+            </div>
+            <div style="margin-left:12px" class="profile-menu">
+                <button id="profileBtn" class="profile-avatar" aria-haspopup="true" aria-expanded="false" title="{{ user.username }}">
+                    <span class="initial">{{ user.username|slice:":1"|upper }}</span>
+                </button>
+                <div class="profile-dropdown" id="profileDropdown" role="menu">
+                    <a href="/profile/">View profile</a>
+                    <a href="/logout/">Logout</a>
+                </div>
             </div>
             {% endif %}
         </div>
@@ -94,7 +116,7 @@
             <div style="margin-top:10px;display:flex;flex-direction:column;gap:10px">
                 <div style="display:flex;justify-content:space-between"><div class="muted">Days with data</div><div style="font-weight:800">{{ days_with_data }}</div></div>
                 <div style="display:flex;justify-content:space-between"><div class="muted">Max / Day</div><div style="font-weight:800">{{ max_daily_calories }} kcal</div></div>
-                <div style="display:flex;justify-content:space-between"><div class="muted">Average</div><div style="font-weight:800">{{ avg_logged_day }} kcal</div></div>
+                <div style="display:flex;justify-content:space-between"><div class="muted">Average / day (range)</div><div style="font-weight:800">{{ avg_calories }} kcal</div></div>
 
             </div>
         </div>
@@ -108,6 +130,32 @@
                 <canvas id="trendChart" style="width:100%;height:100%"></canvas>
                 <div id="trendHoverBox" style="position:absolute;right:12px;top:12px;background:rgba(255,255,255,0.03);padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);color:#e6eef8;display:none"></div>
                 <div id="weeklyNoData" style="display:none;position:absolute;left:0;right:0;top:0;bottom:0;align-items:center;justify-content:center;color:#9fb3d9">No recent data</div>
+            </div>
+
+            <!-- Goal & quick stats panel (fills spare space under the chart) -->
+            <div style="display:flex;gap:12px;margin-top:48px;flex-wrap:wrap">
+                <div style="flex:1;min-width:180px;background:rgba(255,255,255,0.02);padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.03)">
+                    <div style="font-size:12px;color:#9fb3d9">Daily goal</div>
+                    <div style="font-weight:900;font-size:16px;margin-top:6px">{{ goal }} kcal {% if profile_bmr %}<small style="color:#9fb3d9;font-weight:700;margin-left:8px">(BMR-based)</small>{% endif %}</div>
+                    <div class="muted" style="margin-top:6px">Hit rate: <strong>{{ goal_hit_rate }}%</strong> • Days logged: <strong>{{ days_with_data }}</strong></div>
+                </div>
+
+                <div style="width:220px;background:rgba(255,255,255,0.02);padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.03)">
+                    <div style="font-size:12px;color:#9fb3d9">BMR (estimate)</div>
+                    <div style="font-weight:900;font-size:16px;margin-top:6px">{% if profile_bmr %}{{ profile_bmr }} kcal/day{% else %}<span class="muted">—</span>{% endif %}</div>
+                </div>
+
+                <div style="width:220px;background:rgba(255,255,255,0.02);padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.03)">
+                    <div style="font-size:12px;color:#9fb3d9">Suggested TDEE</div>
+                    <div style="font-weight:900;font-size:16px;margin-top:6px">{% if tdee_suggestion %}{{ tdee_suggestion }} kcal/day{% else %}<span class="muted">—</span>{% endif %}</div>
+                    <div class="muted" style="margin-top:6px">(Sedentary multiplier ×1.2)</div>
+                </div>
+
+                <div style="flex:1;min-width:180px;background:rgba(255,255,255,0.02);padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.03)">
+                    <div style="font-size:12px;color:#9fb3d9">Max / Day</div>
+                    <div style="font-weight:900;font-size:16px;margin-top:6px">{{ max_daily_calories }} kcal</div>
+                    <div class="muted" style="margin-top:6px">Avg over logged days: <strong>{{ avg_calories }} kcal/day</strong></div>
+                </div>
             </div>
         </div>
 
@@ -190,6 +238,8 @@
 {
   "total_today": { "protein": {{ total_today.protein_g|default:0 }}, "fat": {{ total_today.fat_g|default:0 }}, "carbs": {{ total_today.carbs_g|default:0 }} },
   "goal": {{ goal|default:2000 }},
+  "profile_bmr": {{ profile_bmr|default:'null' }},
+  "tdee_suggestion": {{ tdee_suggestion|default:'null' }},
   "weekly_max_adj": {{ weekly_max_adj|default:0 }},
   "series_days": {{ series_days|default:30 }},
   "series": [
@@ -481,5 +531,20 @@
     }catch(e){console.warn('streak init',e)}
 })();
 </script>
+<script>
+(function(){
+    try{
+        const pBtn = document.getElementById('profileBtn');
+        const pDrop = document.getElementById('profileDropdown');
+        if(pBtn){
+            pBtn.addEventListener('click', function(ev){ ev.stopPropagation(); const opened = pBtn.getAttribute('aria-expanded') === 'true'; pBtn.setAttribute('aria-expanded', String(!opened)); pDrop.style.display = opened ? 'none' : 'block'; });
+            document.addEventListener('click', function(){ if(pDrop){ pDrop.style.display = 'none'; pBtn.setAttribute('aria-expanded','false'); } });
+        }
+    }catch(e){ console.warn('profile menu init', e); }
+})();
+</script>
+
+<!-- NutriLog modal removed from this page (dashboard-only) -->
+
 </body>
 </html>

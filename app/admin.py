@@ -1,6 +1,12 @@
 from django.contrib import admin
 
 # Register your models here.
-from .models import MealLog
+from .models import MealLog, Profile
 
 admin.site.register(MealLog)
+
+@admin.register(Profile)
+class ProfileAdmin(admin.ModelAdmin):
+    list_display = ('user', 'sex', 'age', 'height_cm', 'weight_kg', 'created_at')
+    search_fields = ('user__username', 'user__email')
+    readonly_fields = ('created_at', 'updated_at')

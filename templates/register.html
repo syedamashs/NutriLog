@@ -36,6 +36,21 @@
         <input name="email" type="email" placeholder="Email" required value="{{ email|default:'' }}">
         <input name="password" type="password" placeholder="Password" required>
         <input name="password2" type="password" placeholder="Confirm password" required>
+
+        <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+            <select name="sex" style="flex:1;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:#e6eef8">
+                <option value="">Sex (optional)</option>
+                <option value="M" {% if sex == 'M' %}selected{% endif %}>Male</option>
+                <option value="F" {% if sex == 'F' %}selected{% endif %}>Female</option>
+                <option value="O" {% if sex == 'O' %}selected{% endif %}>Other</option>
+            </select>
+            <input name="age" type="number" placeholder="Age (yrs)" value="{{ age|default:'' }}" style="width:110px;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:#e6eef8" />
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+            <input name="height_cm" type="number" step="0.1" placeholder="Height (cm)" value="{{ height_cm|default:'' }}" style="flex:1;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:#e6eef8" />
+            <input name="weight_kg" type="number" step="0.1" placeholder="Weight (kg)" value="{{ weight_kg|default:'' }}" style="width:120px;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:#e6eef8" />
+        </div>
+
         <button class="btn">Register</button>
     </form>
 

@@ -79,7 +79,7 @@ def dashboard(request):
         items_json = json.dumps(items)
 
         # SAVE MEAL LOG (ONE ROW PER MEAL)
-        MealLog.objects.create(
+        meal = MealLog.objects.create(
             user=request.user,
             meal_name=", ".join(foods),
             meal_type=meal_type,
@@ -91,6 +91,29 @@ def dashboard(request):
             items_json=items_json,
         )
 
+        # Recompute whether the user's goal was achieved for this meal's date and update all logs for that day
+        try:
+            tz = ZoneInfo('Asia/Kolkata')
+            local_date = timezone.localtime(meal.created_at, tz).date()
+            day_start = timezone.datetime(local_date.year, local_date.month, local_date.day, 0, 0, 0, tzinfo=tz)
+            day_end = day_start + timezone.timedelta(days=1)
+
+            # Determine user's goal (BMR-based if available)
+            goal_val = 2000
+            try:
+                profile = getattr(request.user, 'profile', None)
+                bmr = profile.bmr() if profile else None
+                if bmr:
+                    goal_val = int(bmr)
+            except Exception:
+                goal_val = 2000
+
+            day_total = MealLog.objects.filter(user=request.user, created_at__gte=day_start, created_at__lt=day_end).aggregate(total=Sum('calories'))['total'] or 0
+            achieved = True if (day_total > 0 and day_total <= goal_val) else False
+            MealLog.objects.filter(user=request.user, created_at__gte=day_start, created_at__lt=day_end).update(day_goal_achieved=achieved)
+        except Exception:
+            pass
+
         context = {
             "items": items,
             "total": total
@@ -99,6 +122,44 @@ def dashboard(request):
     return render(request, "dashboard.html", context)
 
 
+# helper: recompute the day_goal_achieved flag for a specific date for a user
+def recompute_day_goal_for_date(user, d):
+    """Recompute running_calories and day_goal_achieved flags for all MealLog rows for a given user/date.
+    - Builds per-day chronological running totals.
+    - Once running total reaches/exceeds the user's goal, marks that row and all subsequent rows for that day as achieved.
+    Returns True if the day is achieved, False otherwise.
+    """
+    try:
+        tz = ZoneInfo('Asia/Kolkata')
+        day_start = timezone.datetime(d.year, d.month, d.day, 0, 0, 0, tzinfo=tz)
+        day_end = day_start + timezone.timedelta(days=1)
+
+        # determine the goal for the user (BMR if available)
+        goal_val = 2000
+        try:
+            profile = getattr(user, 'profile', None)
+            bmr = profile.bmr() if profile else None
+            if bmr:
+                goal_val = int(bmr)
+        except Exception:
+            goal_val = 2000
+
+        # iterate logs in chronological order, compute running total and set flags
+        day_logs = list(MealLog.objects.filter(user=user, created_at__gte=day_start, created_at__lt=day_end).order_by('created_at'))
+        running = 0.0
+        achieved_once = False
+        for ml in day_logs:
+            running += float(ml.calories or 0)
+            # mark achieved once running >= goal_val
+            if not achieved_once and running >= goal_val and running > 0:
+                achieved_once = True
+            ml.running_calories = round(running, 2)
+            ml.day_goal_achieved = bool(achieved_once)
+            ml.save()
+
+        return bool(achieved_once)
+    except Exception:
+        return False
 @login_required
 def history(request):
     # analytics parameters (robust parsing)
@@ -153,7 +214,16 @@ def history(request):
         "fiber_g": round(sum(l.fiber_g for l in today_logs), 2),
     }
 
+    # Default goal is 2000 kcal/day; if the user has a profile with a BMR estimate, use that as their personal goal
     goal = 2000
+    try:
+        profile = getattr(request.user, 'profile', None)
+        bmr = profile.bmr() if profile else None
+        if bmr:
+            goal = int(bmr)
+    except Exception:
+        # keep default goal
+        goal = 2000
 
     if total_today["calories"] <= goal:
         status = "under"
@@ -221,6 +291,21 @@ def history(request):
     # build timeseries for requested range (oldest->newest)
     start_date = today - timezone.timedelta(days=days_param-1)
     date_range = [(start_date + timezone.timedelta(days=i)) for i in range(days_param)]
+
+    # Ensure running_calories and day_goal_achieved are computed for each day in the range
+    # (this handles cases where logs were added/updated without triggering recompute)
+    for d in date_range:
+        try:
+            day_start = timezone.datetime(d.year, d.month, d.day, 0, 0, 0, tzinfo=tz)
+            day_end = day_start + timezone.timedelta(days=1)
+            day_qs = MealLog.objects.filter(user=request.user, created_at__gte=day_start, created_at__lt=day_end)
+            total = day_qs.aggregate(total=Sum('calories'))['total'] or 0
+            # recompute when there are logs with positive calories but running_calories still zero
+            if total > 0 and day_qs.filter(running_calories=0).exists():
+                recompute_day_goal_for_date(request.user, d)
+        except Exception:
+            pass
+
     series = []
     for d in date_range:
         day_logs = [l for l in logs if timezone.localtime(l.created_at, tz).date() == d]
@@ -237,11 +322,22 @@ def history(request):
 
     # stats computed only for days with logged calories (>0)
     days_with_data = sum(1 for s in series if s['calories'] > 0)
-    goal_hit_days = sum(1 for s in series if s['calories'] > 0 and s['calories'] <= goal)
-    goal_hit_rate = round(goal_hit_days / days_with_data * 100, 1) if days_with_data > 0 else 0
+
+    # Count days where the per-day goal was achieved (using the day_goal_achieved flag stored on MealLog)
+    days_achieved = 0
+    for d in date_range:
+        try:
+            day_start = timezone.datetime(d.year, d.month, d.day, 0, 0, 0, tzinfo=tz)
+            day_end = day_start + timezone.timedelta(days=1)
+            if MealLog.objects.filter(user=request.user, created_at__gte=day_start, created_at__lt=day_end, day_goal_achieved=True).exists():
+                days_achieved += 1
+        except Exception:
+            continue
+
+    # Hit rate over days with logged calories only (exclude days without logs)
+    goal_hit_rate = round(days_achieved / days_with_data * 100, 1) if days_with_data > 0 else 0
 
     max_daily_calories = max((s['calories'] for s in series), default=0)
-    avg_logged_day = round(sum(s['calories'] for s in series if s['calories'] > 0) / days_with_data, 2) if days_with_data > 0 else 0
 
     # previous period comparison
     prev_start = start_date - timezone.timedelta(days=days_param)
@@ -274,6 +370,20 @@ def history(request):
     # recent logs (limit) — limited to the selected range
     recent_logs = list(logs_in_range[:50])
 
+    # expose profile BMR and a simple TDEE suggestion (sedentary 1.2 multiplier) when available
+    profile_bmr = None
+    tdee_suggestion = None
+    try:
+        profile = getattr(request.user, 'profile', None)
+        if profile:
+            profile_bmr = profile.bmr()
+            if profile_bmr:
+                # suggest a sedentary TDEE (simple multiplier)
+                tdee_suggestion = int(round(profile_bmr * 1.2))
+    except Exception:
+        profile_bmr = None
+        tdee_suggestion = None
+
     context = {
         # pass range-filtered logs to the template so the list view and CSV export reflect the selected days
         'logs': logs_in_range,
@@ -284,6 +394,8 @@ def history(request):
         'prev_total': prev_total,
         'pct_change': pct_change,
         'goal': goal,
+        'profile_bmr': profile_bmr,
+        'tdee_suggestion': tdee_suggestion,
         'goal_close': round(goal * 0.9, 2),
         'goal_hit_rate': goal_hit_rate,
         'status': status,
@@ -297,7 +409,7 @@ def history(request):
         'weekly_max_adj': max(100, round(max((s['calories'] for s in series), default=0) * 1.1, 2)),
         'days_with_data': days_with_data,
         'max_daily_calories': max_daily_calories,
-        'avg_logged_day': avg_logged_day,
+        
         'now': timezone.localtime(now(), tz),
     }
 

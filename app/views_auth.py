@@ -23,6 +23,12 @@ def register_view(request):
         password = request.POST.get('password','')
         password2 = request.POST.get('password2','')
 
+        # optional personal fields
+        age = request.POST.get('age','').strip()
+        height_cm = request.POST.get('height_cm','').strip()
+        weight_kg = request.POST.get('weight_kg','').strip()
+        sex = request.POST.get('sex','').strip()
+
         errors = []
         if not username:
             errors.append('Username is required')
@@ -38,13 +44,36 @@ def register_view(request):
             errors.append('An account with this email already exists')
 
         if errors:
-            return render(request, 'register.html', {'errors': errors, 'username': username, 'email': email})
+            return render(request, 'register.html', {'errors': errors, 'username': username, 'email': email, 'age': age, 'height_cm': height_cm, 'weight_kg': weight_kg, 'sex': sex})
 
-        User.objects.create_user(
+        user = User.objects.create_user(
             username=username,
             email=email,
             password=password
         )
+        # Ensure Profile exists and save additional attributes
+        try:
+            from .models import Profile
+            profile, _ = Profile.objects.get_or_create(user=user)
+            try:
+                profile.age = int(age) if age not in (None, '') else None
+            except ValueError:
+                profile.age = None
+            try:
+                profile.height_cm = float(height_cm) if height_cm not in (None, '') else None
+            except ValueError:
+                profile.height_cm = None
+            try:
+                profile.weight_kg = float(weight_kg) if weight_kg not in (None, '') else None
+            except ValueError:
+                profile.weight_kg = None
+            if sex in ('M', 'F', 'O'):
+                profile.sex = sex
+            profile.save()
+        except Exception:
+            # Non-fatal; registration still succeeds
+            pass
+
         return redirect('/login/')
     return render(request, "register.html")
 

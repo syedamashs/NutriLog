@@ -48,11 +48,41 @@
         .brand{
             display:flex;align-items:center;gap:12px
         }
-        .logo{
-            width:46px;height:46px;border-radius:10px;background:var(--accent);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;box-shadow:0 6px 20px rgba(255,122,154,0.12);
-        }
+        .logo{width:64px;height:64px;border-radius:10px;display:flex;align-items:center;justify-content:center;overflow:hidden;box-shadow:0 8px 28px rgba(0,0,0,0.28);border:1px solid rgba(255,255,255,0.03);transition:transform .32s cubic-bezier(.2,.9,.3,1)}
+        .logo img{width:100%;height:100%;object-fit:cover;display:block}
+        .logo-fallback{font-weight:900;font-size:18px}
+        .logo:hover{transform:translateY(-8px) scale(1.22) rotate(-8deg)}
         .title{font-size:18px;font-weight:700}
         .subtitle{color:var(--muted);font-size:13px}
+
+        /* NutriLog modal (click logo to open) */
+        .fn-modal-overlay{position:fixed;left:0;top:0;right:0;bottom:0;display:none;align-items:center;justify-content:center;background:rgba(4,10,20,0.55);backdrop-filter:blur(6px);z-index:9999}
+        .fn-modal-overlay.show{display:flex}
+        .fn-modal-card{width:min(520px,92%);background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01));padding:22px;border-radius:12px;border:1px solid rgba(255,255,255,0.04);box-shadow:0 18px 60px rgba(2,6,23,0.7);color:#e6eef8;position:relative;transform:scale(.95);opacity:0;transition:transform .28s cubic-bezier(.2,.9,.3,1),opacity .18s}
+        .fn-modal-overlay.show .fn-modal-card{transform:scale(1);opacity:1}
+        .fn-modal-close{position:absolute;right:10px;top:10px;background:transparent;border:none;color:#e6eef8;font-size:18px;cursor:pointer}
+        .fn-modal-logo{display:flex;align-items:center;gap:12px}
+        .fn-modal-logo img{width:86px;height:86px;object-fit:cover;border-radius:10px}
+        .fn-modal-title{font-size:18px;font-weight:800;margin-top:6px}
+        .fn-modal-desc{color:var(--muted);margin-top:6px}
+        .fn-modal-actions{display:flex;gap:10px;margin-top:18px;align-items:center}
+        .fn-btn{padding:10px 14px;border-radius:10px;border:none;cursor:pointer;font-weight:800}
+        .fn-btn.glow{background:linear-gradient(90deg,#ff7a9a,#ffd6a5);color:#071028;box-shadow:0 8px 30px rgba(255,122,154,0.18);}
+        .fn-btn.ghost{background:transparent;color:var(--muted);border:1px solid rgba(255,255,255,0.04)}
+        .fn-modal-credits{display:none}
+        .fn-modal-credits.show{display:block}
+        .fn-modal-credits ul{margin:8px 0 0 18px}
+        .fn-modal-footer{margin-top:14px;display:flex;gap:8px;align-items:center}
+        .fn-github{padding:8px 12px;border-radius:8px;background:#111827;color:#fff;text-decoration:none;display:inline-block}
+        
+
+        /* profile avatar and dropdown */
+        .profile-menu{position:relative}
+        .profile-avatar{width:40px;height:40px;border-radius:50%;background:linear-gradient(90deg,#ffd6a5,#ff7a9a);display:inline-flex;align-items:center;justify-content:center;color:#071028;font-weight:800;cursor:pointer;border:1px solid rgba(255,255,255,0.03)}
+        .profile-avatar .initial{font-weight:900}
+        .profile-dropdown{position:absolute;right:0;top:48px;background:#071022;border:1px solid rgba(255,255,255,0.04);padding:8px;border-radius:8px;min-width:140px;display:none;z-index:999}
+        .profile-dropdown a{display:block;padding:8px;color:#e6eef8;text-decoration:none;border-radius:6px}
+        .profile-dropdown a:hover{background:rgba(255,255,255,0.02)}
 
         nav{display:flex;gap:12px;align-items:center}
         .btn, .muted-btn{padding:10px 14px;border-radius:10px;border:none;cursor:pointer;font-weight:600}
@@ -129,8 +159,7 @@
         footer{margin-top:28px;color:var(--muted);text-align:center;font-size:13px}
 
         /* responsive */
-        .logo{transition:transform .24s cubic-bezier(.2,.9,.3,1)}
-        .logo:hover{transform:translateY(-3px) scale(1.06) rotate(-6deg)}
+        /* transition and hover behavior handled with the main .logo block above (larger hover effect) */
 
         .left-charts{margin-top:18px}
         .charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px}
@@ -172,17 +201,11 @@
 <div class="app">
     <header>
         <div class="brand">
-            <div class="logo">FN</div>
+            <div class="logo"><img src="/data/nutrilog_logo.png" alt="NutriLog" onerror="this.style.display='none'; this.parentElement.querySelector('.logo-fallback').style.display='flex'"/><div class="logo-fallback" style="display:none;align-items:center;justify-content:center;width:100%;height:100%;font-weight:800;color:#fff">NL</div></div>
             <div>
-                <div class="title">Food Nutrition</div>
-                <div class="subtitle">Multi-item detection • Quick nutrition</div>
+                <div class="title">NutriLog</div>
+                <div class="subtitle">Eat Smart. Track Better.</div>
             </div>
-            {% if user.is_authenticated %}
-            <div style="margin-left:14px;text-align:right">
-                <div style="font-weight:700">{{ user.username }}</div>
-                <div style="color:var(--muted);font-size:12px">Signed in</div>
-            </div>
-            {% endif %}
         </div>
 
         <div style="display:flex;align-items:center;gap:12px">
@@ -200,14 +223,23 @@
 
             <nav>
                 {% if user.is_authenticated %}
-                    <a href="/profile/" class="muted-btn">Profile</a>
                     <a href="/history/" class="muted-btn">Analytics</a>
-                    <a href="/logout/" class="muted-btn">Logout</a>
                 {% else %}
                     <a href="/login/" class="muted-btn">Login</a>
                     <a href="/register/" class="muted-btn">Register</a>
                 {% endif %}
             </nav>
+            {% if user.is_authenticated %}
+            <div class="profile-menu">
+                <button id="profileBtn" class="profile-avatar" aria-haspopup="true" aria-expanded="false" title="{{ user.username }}">
+                    <span class="initial">{{ user.username|slice:":1"|upper }}</span>
+                </button>
+                <div class="profile-dropdown" id="profileDropdown" role="menu">
+                    <a href="/profile/">View profile</a>
+                    <a href="/logout/">Logout</a>
+                </div>
+            </div>
+            {% endif %} 
         </div>
     </header>
 
@@ -621,5 +653,93 @@
     }catch(e){console.warn('streak init',e)}
 })();
 </script>
+<script>
+(function(){
+    try{
+        const pBtn = document.getElementById('profileBtn');
+        const pDrop = document.getElementById('profileDropdown');
+        if(pBtn){
+            pBtn.addEventListener('click', function(ev){ ev.stopPropagation(); const opened = pBtn.getAttribute('aria-expanded') === 'true'; pBtn.setAttribute('aria-expanded', String(!opened)); pDrop.style.display = opened ? 'none' : 'block'; });
+            document.addEventListener('click', function(){ if(pDrop){ pDrop.style.display = 'none'; pBtn.setAttribute('aria-expanded','false'); } });
+        }
+    }catch(e){ console.warn('profile menu init', e); }
+})();
+</script>
+
+<!-- NutriLog modal -->
+<style>
+  /* Consistent vertical spacing in the modal card */
+  .fn-modal-card #fnModalMain > * + * { margin-top: 8px; }
+
+  /* Image spacing: double space above, larger gap below */
+  .fn-modal-card .fn-modal-logo { margin: 28px 0 20px; }
+
+  /* Title & description spacing */
+  .fn-modal-card .fn-modal-title { font-size:22px; text-align:center; margin-top:0; }
+  .fn-modal-card .fn-modal-desc { font-size:15px; text-align:center; margin-top:6px; }
+
+  /* Turn Back button spacing */
+  .fn-modal-card .fn-modal-actions { margin-top:14px; display:flex; justify-content:center; }
+
+  /* Credits spacing: title, list, footer */
+  .fn-modal-card .fn-modal-credits > * + * { margin-top:10px; }
+  .fn-modal-card .fn-modal-credits .credits-title { font-weight:900; font-size:20px; text-align:center; margin-bottom:8px; display:block; }
+  .fn-modal-card .fn-modal-credits ul { gap:8px; margin:0; padding:0; list-style:none; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  .fn-modal-card .fn-modal-footer { margin-top:14px; display:flex; justify-content:center; gap:12px; }
+</style>
+<div id="fnModal" class="fn-modal-overlay" aria-hidden="true" role="dialog" aria-modal="true">
+  <div class="fn-modal-card" role="document">
+    <button class="fn-modal-close" id="fnModalClose" aria-label="Close">✕</button>
+    <div id="fnModalMain">
+      <div class="fn-modal-logo" style="display:flex;justify-content:center"><img src="/data/nutrilog_logo.png" alt="NutriLog" style="width:280px;max-width:88%;height:auto;border-radius:12px"></div>
+        <div class="fn-modal-title" style="text-align:center;font-size:22px">NutriLog</div>
+        <div class="fn-modal-desc" style="text-align:center;font-size:15px">Eat Smart. Track Better.</div>
+      <div class="fn-modal-actions" style="display:flex;justify-content:center;margin-top:18px">
+        <button id="fnTurnBack" class="fn-btn glow">Turn Back →</button>
+      </div>
+    </div>
+
+    <div id="fnCredits" class="fn-modal-credits" aria-hidden="true">
+      <div class="credits-title">Created By</div>
+      <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:8px;align-items:center;justify-content:center">
+        <li style="font-size:18px;font-weight:900"><span class="symbol">⚡</span> ANISH M</li>
+        <li style="font-size:18px;font-weight:900"><span class="symbol">🔥</span> MOHANALINGAM M</li>
+        <li style="font-size:18px;font-weight:900"><span class="symbol">⭐</span> PRAVEEN M</li>
+        <li style="font-size:18px;font-weight:900"><span class="symbol">✨</span> MOULESH G S</li>
+        <li style="font-size:18px;font-weight:900"><span class="symbol">🍃</span> SYED AMASH S</li>
+      </ul>
+      <div class="fn-modal-footer" style="display:flex;justify-content:center;margin-top:18px">
+        <a class="fn-github" href="//to be pasted">GitHub Repo</a>
+        <button id="fnBackFromCredits" class="fn-btn" style="background:transparent;border:1px solid rgba(255,255,255,0.06);color:#fff">Back</button>
+      </div>
+    </div> 
+  </div>
+</div>
+
+<script>
+(function(){
+  try{
+    const logoEls = document.querySelectorAll('.logo, .logo img');
+    const modal = document.getElementById('fnModal');
+    const closeBtn = document.getElementById('fnModalClose');
+    const turnBack = document.getElementById('fnTurnBack');
+    const credits = document.getElementById('fnCredits');
+    const main = document.getElementById('fnModalMain');
+    const backFromCredits = document.getElementById('fnBackFromCredits');
+
+    function openModal(){ modal.classList.add('show'); modal.setAttribute('aria-hidden','false'); main.style.display='block'; credits.classList.remove('show'); credits.setAttribute('aria-hidden','true'); }
+    function closeModal(){ modal.classList.remove('show'); modal.setAttribute('aria-hidden','true'); }
+    function showCredits(){ main.style.display='none'; credits.classList.add('show'); credits.setAttribute('aria-hidden','false'); }
+
+    logoEls.forEach(el=> el && el.addEventListener('click', function(ev){ ev.preventDefault(); openModal(); }));
+    closeBtn && closeBtn.addEventListener('click', closeModal);
+
+    turnBack && turnBack.addEventListener('click', showCredits);
+    backFromCredits && backFromCredits.addEventListener('click', openModal);
+    modal && modal.addEventListener('click', function(e){ if(e.target === modal) closeModal(); });
+  }catch(e){ console.warn('fn modal init', e); }
+})();
+</script>
+
 </body>
 </html>

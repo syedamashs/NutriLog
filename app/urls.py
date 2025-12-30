@@ -13,6 +13,6 @@ urlpatterns = [
     path('analytics/', analytics, name='analytics'),
     path('analytics/logs/', analytics_logs, name='analytics_logs'),
     path('logout/', logout_view),
-    path('profile/', profile_view),
+    path('profile/', profile_view, name='profile'),
     path('admin/', admin.site.urls), 
 ]

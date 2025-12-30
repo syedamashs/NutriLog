@@ -19,6 +19,11 @@
         .streak-badge .streak-fire{position:absolute;left:6px;top:6px;font-size:14px;filter:drop-shadow(0 1px 4px rgba(0,0,0,0.12))}
         .streak-badge .streak-num{font-size:16px;font-weight:900;color:#071028}
         /* Dashboard modifier: slightly larger for home page */
+        .profile-menu{position:relative}
+        .profile-avatar{width:36px;height:36px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:linear-gradient(90deg,#ffd6a5,#ff7a9a);color:#071028;font-weight:800;border:1px solid rgba(255,255,255,0.03);cursor:pointer}
+        .profile-dropdown{position:absolute;right:0;top:44px;background:#071022;border:1px solid rgba(255,255,255,0.04);padding:8px;border-radius:8px;min-width:140px;display:none;z-index:999}
+        .profile-dropdown a{display:block;padding:8px;color:#e6eef8;text-decoration:none;border-radius:6px}
+        .profile-dropdown a:hover{background:rgba(255,255,255,0.02)}
         .streak-badge--home{width:64px;height:64px;border-radius:12px;font-size:20px;background:var(--accent-solid);color:#071028}
         .streak-badge--home .streak-fire{font-size:20px}
         .streak-badge--home .streak-num{font-size:20px}
@@ -46,10 +51,30 @@
             </div>
             {% endif %}
             <a href="/" class="btn">Back to Dashboard</a>
+            {% if user.is_authenticated %}
+            <div style="margin-left:8px" class="profile-menu">
+                <button id="profileBtn" class="profile-avatar" aria-haspopup="true" aria-expanded="false" title="{{ user.username }}">
+                    <span class="initial">{{ user.username|slice:":1"|upper }}</span>
+                </button>
+                <div class="profile-dropdown" id="profileDropdown" role="menu">
+                    <a href="/profile/">View profile</a>
+                    <a href="/logout/">Logout</a>
+                </div>
+            </div>
+            {% endif %}
         </div>
     </div>
 
     <div style="margin-top:18px">
+        {# Flash messages #}
+        {% if messages %}
+            <div style="margin-bottom:12px">
+                {% for message in messages %}
+                    <div style="padding:8px 10px;border-radius:8px;background:rgba(0,180,255,0.08);color:#bff0ff;margin-bottom:6px">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
         <p><strong>Username</strong></p>
         <div class="muted">{{ user_obj.username }}</div>
 
@@ -59,9 +84,98 @@
         <p style="margin-top:12px"><strong>Joined</strong></p>
         <div class="muted">{{ user_obj.date_joined }}</div>
 
-        <div style="margin-top:18px">
+        <div style="margin-top:18px;display:flex;gap:12px;align-items:center">
             <a href="/logout/" class="btn">Logout</a>
+            <button id="edit-toggle" class="btn" style="background:#11d3a2">Edit profile</button>
         </div>
+
+        <!-- Profile quick stats -->
+        <div style="margin-top:18px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+            <div style="background:rgba(255,255,255,0.02);padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.02);min-width:120px">
+                <div style="font-size:12px;color:#9fb3d9">Age</div>
+                <div style="font-weight:800">{{ profile.age|default:'—' }}</div>
+            </div>
+
+            <div style="background:rgba(255,255,255,0.02);padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.02);min-width:120px">
+                <div style="font-size:12px;color:#9fb3d9">Sex</div>
+                <div style="font-weight:800">{% if profile.sex == 'M' %}Male{% elif profile.sex == 'F' %}Female{% elif profile.sex == 'O' %}Other{% else %}—{% endif %}</div>
+            </div>
+
+            <div style="background:rgba(255,255,255,0.02);padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.02);min-width:120px">
+                <div style="font-size:12px;color:#9fb3d9">Height (cm)</div>
+                <div style="font-weight:800">{{ profile.height_cm|default:'—' }}</div>
+            </div>
+
+            <div style="background:rgba(255,255,255,0.02);padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.02);min-width:120px">
+                <div style="font-size:12px;color:#9fb3d9">Weight (kg)</div>
+                <div style="font-weight:800">{{ profile.weight_kg|default:'—' }}</div>
+            </div>
+
+            <div style="background:linear-gradient(90deg,#00b4ff33,#11d3a233);padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.02);min-width:140px">
+                <div style="font-size:12px;color:#9fb3d9">BMI</div>
+                <div style="font-weight:900;font-size:18px">
+                    <span class="bmi-value">{{ bmi|default:'—' }}</span>
+                    <small style="margin-left:8px;color:#9fb3d9;font-weight:700">{{ bmi_category|default:'' }}</small>
+                </div>
+            </div>
+
+            <div style="background:linear-gradient(90deg,#11d3a233,#ffd6a533);padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.02);min-width:160px">
+                <div style="font-size:12px;color:#9fb3d9">BMR (est.)</div>
+                <div style="font-weight:900;font-size:18px">{{ bmr|default:'—' }} kcal/day</div>
+            </div>
+
+            <div style="background:linear-gradient(90deg,#ffd6a533,#fff0d033);padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.02);min-width:160px">
+                <div style="font-size:12px;color:#9fb3d9">Ideal weight</div>
+                <div style="font-weight:900;font-size:18px">{{ ideal_weight|default:'—' }} kg</div>
+            </div>
+        </div>
+
+        <!-- Edit form (hidden by default) -->
+        <form id="profile-form" method="post" action="" style="margin-top:18px;display:none">
+            {% csrf_token %}
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+                <div style="flex:1;min-width:220px">
+                    <label style="font-weight:700">Username</label>
+                    <input name="username" value="{{ user_obj.username }}" style="width:100%;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit" />
+                </div>
+                <div style="flex:1;min-width:220px">
+                    <label style="font-weight:700">Email</label>
+                    <input name="email" value="{{ user_obj.email }}" style="width:100%;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit" />
+                </div>
+            </div>
+
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px">
+                <div style="flex:1;min-width:120px">
+                    <label style="font-weight:700">Age</label>
+                    <input type="number" name="age" id="age" value="{{ profile.age }}" style="width:100%;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit" />
+                </div>
+                <div style="flex:1;min-width:120px">
+                    <label style="font-weight:700">Sex</label>
+                    <select name="sex" id="sex" style="width:100%;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit">
+                        <option value="">(not set)</option>
+                        <option value="M" {% if profile.sex == 'M' %}selected{% endif %}>Male</option>
+                        <option value="F" {% if profile.sex == 'F' %}selected{% endif %}>Female</option>
+                        <option value="O" {% if profile.sex == 'O' %}selected{% endif %}>Other</option>
+                    </select>
+                </div>
+                <div style="flex:1;min-width:120px">
+                    <label style="font-weight:700">Height (cm)</label>
+                    <input type="number" name="height_cm" id="height_cm" step="0.1" value="{{ profile.height_cm }}" style="width:100%;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit" />
+                </div>
+                <div style="flex:1;min-width:120px">
+                    <label style="font-weight:700">Weight (kg)</label>
+                    <input type="number" name="weight_kg" id="weight_kg" step="0.1" value="{{ profile.weight_kg }}" style="width:100%;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit" />
+                </div>
+            </div>
+
+            <div style="margin-top:12px;display:flex;gap:10px;align-items:center">
+                <button type="submit" class="btn" style="background:#11d3a2">Save changes</button>
+                <button id="cancel-edit" type="button" class="btn" style="background:#333">Cancel</button>
+                <div style="margin-left:12px;color:#9fb3d9">Live BMI: <span id="live-bmi">{{ bmi|default:'—' }}</span></div>
+                <div style="margin-left:12px;color:#9fb3d9">Live BMR: <span id="live-bmr">{{ bmr|default:'—' }}</span> kcal/day</div>
+            </div>
+        </form>
+
     </div>
 </div>
 <script>
@@ -77,6 +191,81 @@
         localStorage.setItem(key, String(cur));
     }catch(e){console.warn('streak init',e)}
 })();
+
+// Profile edit toggle + Live BMI calc
+(function(){
+    const editToggle = document.getElementById('edit-toggle');
+    const profileForm = document.getElementById('profile-form');
+    const cancelBtn = document.getElementById('cancel-edit');
+    const hInput = document.getElementById('height_cm');
+    const wInput = document.getElementById('weight_kg');
+    const liveBmi = document.getElementById('live-bmi');
+    const bmiValueElem = document.querySelector('.bmi-value');
+    const bmiCategoryElem = bmiValueElem ? bmiValueElem.parentElement.querySelector('small') : null;
+
+    function showForm(){ profileForm.style.display = 'block'; editToggle.style.display='none'; profileForm.scrollIntoView({behavior:'smooth'}); }
+    function hideForm(){ profileForm.style.display = 'none'; editToggle.style.display='inline-block'; }
+    function formatNum(v){ return Math.round(v*10)/10; }
+
+    function computeBmi(){
+        const h = parseFloat(hInput && hInput.value);
+        const w = parseFloat(wInput && wInput.value);
+        if(!h || !w){ liveBmi.textContent = '—'; if(bmiValueElem) bmiValueElem.textContent = '—'; if(bmiCategoryElem) bmiCategoryElem.textContent = ''; return; }
+        const m = h/100.0;
+        if(m<=0){ liveBmi.textContent = '—'; if(bmiValueElem) bmiValueElem.textContent = '—'; if(bmiCategoryElem) bmiCategoryElem.textContent = ''; return; }
+        const bmi = w / (m*m);
+        const bmiRounded = Math.round(bmi*10)/10;
+        liveBmi.textContent = bmiRounded;
+        if(bmiValueElem) bmiValueElem.textContent = bmiRounded;
+        let cat = '';
+        if(bmi < 18.5) cat = 'Underweight';
+        else if(bmi < 25) cat = 'Normal';
+        else if(bmi < 30) cat = 'Overweight';
+        else cat = 'Obese';
+        if(bmiCategoryElem) bmiCategoryElem.textContent = cat;
+    }
+
+    function computeBmr(){
+        const ageVal = parseFloat(document.getElementById('age') && document.getElementById('age').value);
+        const h = parseFloat(hInput && hInput.value);
+        const w = parseFloat(wInput && wInput.value);
+        const sexElem = document.getElementById('sex');
+        const sexVal = sexElem ? sexElem.value : '';
+        const liveBmrElem = document.getElementById('live-bmr');
+        if(!ageVal || !h || !w){ if(liveBmrElem) liveBmrElem.textContent = '—'; return; }
+        // Mifflin-St Jeor
+        let val;
+        if(sexVal === 'M') val = 10*w + 6.25*h - 5*ageVal + 5;
+        else if(sexVal === 'F') val = 10*w + 6.25*h - 5*ageVal - 161;
+        else { const vm = 10*w + 6.25*h - 5*ageVal + 5; const vf = 10*w + 6.25*h - 5*ageVal - 161; val = (vm+vf)/2; }
+        const bmrRounded = Math.round(val);
+        if(liveBmrElem) liveBmrElem.textContent = bmrRounded;
+    }
+
+    if(editToggle) editToggle.addEventListener('click', showForm);
+    if(cancelBtn) cancelBtn.addEventListener('click', hideForm);
+    if(hInput) hInput.addEventListener('input', ()=>{ computeBmi(); computeBmr(); });
+    if(wInput) wInput.addEventListener('input', ()=>{ computeBmi(); computeBmr(); });
+    const ageInput = document.getElementById('age');
+    if(ageInput) ageInput.addEventListener('input', computeBmr);
+    const sexInput = document.getElementById('sex');
+    if(sexInput) sexInput.addEventListener('change', computeBmr);
+})();
 </script>
+<script>
+(function(){
+    try{
+        const pBtn = document.getElementById('profileBtn');
+        const pDrop = document.getElementById('profileDropdown');
+        if(pBtn){
+            pBtn.addEventListener('click', function(ev){ ev.stopPropagation(); const opened = pBtn.getAttribute('aria-expanded') === 'true'; pBtn.setAttribute('aria-expanded', String(!opened)); pDrop.style.display = opened ? 'none' : 'block'; });
+            document.addEventListener('click', function(){ if(pDrop){ pDrop.style.display = 'none'; pBtn.setAttribute('aria-expanded','false'); } });
+        }
+    }catch(e){ console.warn('profile menu init', e); }
+})();
+</script>
+
+<!-- NutriLog modal removed from this page (dashboard-only) -->
+
 </body>
 </html>
