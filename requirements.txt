@@ -1,0 +1,6 @@
+Django>=4.2,<5
+ultralytics>=8.0
+
+# Notes:
+# - `ultralytics` pulls in torch. For GPU support install torch matching your CUDA (see https://pytorch.org).
+# - Pin exact versions if you want reproducible installs.
