@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    {% load tz %}
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>Logs - Food Nutrition</title>
@@ -79,7 +80,7 @@
             <tbody>
                 {% for log in logs %}
                 <tr data-log-date="{{ log.local_created|date:'Y-m-d' }}" data-meal-name="{{ log.meal_name|lower }}">
-                    <td>{{ log.local_created|date:'Y-m-d H:i T' }}</td>
+                    <td>{{ log.created_at|timezone:'Asia/Kolkata'|date:'Y-m-d h:i A T' }}</td>
                     <td>{{ log.computed_icon }} {{ log.meal_name }} <span class="muted-small">· {{ log.computed_type }}</span></td>
                     <td>{{ log.calories }} kcal</td>
                     <td>{{ log.protein_g }} g • {{ log.fat_g }} g • {{ log.carbs_g }} g</td>

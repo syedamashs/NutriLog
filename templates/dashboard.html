@@ -426,12 +426,14 @@
 <script id="dashboard-data" type="application/json">
 {
   "total": {
+    "grams": {{ total.grams|default:0 }},
     "calories": {{ total.calories|default:0 }},
     "protein": {{ total.protein_g|default:0 }},
     "fat": {{ total.fat_g|default:0 }},
     "carbs": {{ total.carbs_g|default:0 }},
     "fiber": {{ total.fiber_g|default:0 }}
   },
+
   "items": [
     {% for item in items %}
     {
@@ -567,7 +569,7 @@
                     const rows = [['food','grams','calories','protein_g','fat_g','carbs_g','fiber_g']];
                     items.forEach(i => rows.push([i.food || '', i.grams || '', i.calories || '', i.protein || '', i.fat || '', i.carbs || '', i.fiber || '']));
                     const total = DASH.total || null;
-                    if(total) rows.push(['Total','', total.calories || '', total.protein || '', total.fat || '', total.carbs || '', total.fiber || '']);
+                    if(total) rows.push(['Total', total.grams || '', total.calories || '', total.protein || '', total.fat || '', total.carbs || '', total.fiber || '']);
                     const csv = rows.map(r => r.map(c=> '"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
                     const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
                     const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'nutrition_summary.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);

@@ -21,6 +21,18 @@ from .logs import date_range_series, meal_type_breakdown, macros_totals, hourly_
 def dashboard(request):
     context = {}
 
+    # Post/Redirect/Get support: read any temporary data stored in session by previous POST
+    detected_items = request.session.pop('detected_items', None)
+    if detected_items is not None:
+        context['detected_items'] = detected_items
+
+    # If a meal was just saved, show the computed items and totals once (then remove from session)
+    _posted_items = request.session.pop('items', None)
+    _posted_total = request.session.pop('total', None)
+    if _posted_items is not None and _posted_total is not None:
+        context['items'] = _posted_items
+        context['total'] = _posted_total
+
     # STEP 1: IMAGE UPLOAD → DETECT ITEMS
     if request.method == "POST" and "image" in request.FILES:
         image = request.FILES["image"]
@@ -31,9 +43,9 @@ def dashboard(request):
 
         foods = predict_foods(image_path)
 
-        context = {
-            "detected_items": foods
-        }
+        # store detected items in session and redirect to avoid form re-submission on reload
+        request.session['detected_items'] = foods
+        return redirect('dashboard')
 
     # STEP 2: WEIGHTS SUBMITTED → CALCULATE + SAVE
     elif request.method == "POST" and "detected_items" in request.POST:
@@ -41,6 +53,7 @@ def dashboard(request):
 
         items = []
         total = {
+            "grams": 0,
             "calories": 0,
             "protein_g": 0,
             "fat_g": 0,
@@ -64,7 +77,9 @@ def dashboard(request):
                     "nutrition": nutrition
                 })
 
-                for k in total:
+                # accumulate grams as well as nutrition totals
+                total["grams"] += grams
+                for k in ("calories","protein_g","fat_g","carbs_g","fiber_g"):
                     total[k] += nutrition[k]
 
         # round totals
@@ -113,10 +128,10 @@ def dashboard(request):
         except Exception:
             pass
 
-        context = {
-            "items": items,
-            "total": total
-        }
+        # persist the computed items and totals in session for a single GET display
+        request.session['items'] = items
+        request.session['total'] = total
+        return redirect('dashboard')
 
     return render(request, "dashboard.html", context)
 
@@ -181,13 +196,21 @@ def history(request):
     # logs within the requested range (used for list display and CSV export)
     logs_in_range = [l for l in logs if start_date <= timezone.localtime(l.created_at, tz).date() <= today]
 
-    # annotate each log with a localized timestamp for display in Asia/Kolkata and a computed meal type
+    # annotate each log with a localized timestamp (Asia/Kolkata) and compute meal type
     MEAL_ICONS = {'Breakfast':'🍳','Lunch':'🍛','Dinner':'🍽','Snack':'🍪','Other':'🍽'}
+    IST = ZoneInfo('Asia/Kolkata')
+    UTC = ZoneInfo('UTC')
     for _l in logs:
         try:
-            _l.local_created = timezone.localtime(_l.created_at, tz)
+            dt = _l.created_at
+            # if naive, assume it's stored in UTC and make it aware
+            if timezone.is_naive(dt):
+                dt = timezone.make_aware(dt, UTC)
+            # convert to India time
+            _l.local_created = dt.astimezone(IST)
         except Exception:
             _l.local_created = _l.created_at
+
         # rule-based meal type per local time
         try:
             hh = _l.local_created.hour
@@ -437,9 +460,14 @@ def analytics_logs(request):
         except Exception:
             pass
     # annotate with localized timestamps
+    IST = ZoneInfo('Asia/Kolkata')
+    UTC = ZoneInfo('UTC')
     for _l in logs_qs:
         try:
-            _l.local_created = timezone.localtime(_l.created_at, tz)
+            dt = _l.created_at
+            if timezone.is_naive(dt):
+                dt = timezone.make_aware(dt, UTC)
+            _l.local_created = dt.astimezone(IST)
         except Exception:
             _l.local_created = _l.created_at
         # computed meal type
