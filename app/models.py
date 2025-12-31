@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.utils.text import slugify
 
 # MealLog_Model
 class MealLog(models.Model):
@@ -90,6 +91,44 @@ class Profile(models.Model):
 
     def __str__(self):
         return f"{self.user.username} Profile"
+
+
+class Recipe(models.Model):
+    """A single recipe with ingredient -> grams mapping stored as JSON."""
+    name = models.CharField(max_length=200, unique=True)
+    slug = models.SlugField(max_length=200, unique=True, blank=True)
+    ingredients = models.JSONField(help_text='Mapping of ingredient name to grams (float)')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['name']
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.name
+
+
+class Nutrition(models.Model):
+    """Nutrition per 100g for an ingredient."""
+    ingredient = models.CharField(max_length=200, unique=True)
+    calories = models.FloatField(default=0.0)
+    protein_g = models.FloatField(default=0.0)
+    fat_g = models.FloatField(default=0.0)
+    carbs_g = models.FloatField(default=0.0)
+    fiber_g = models.FloatField(default=0.0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['ingredient']
+
+    def __str__(self):
+        return self.ingredient
 
 
 # Ensure a Profile exists for every User

@@ -1,14 +1,18 @@
+from .models import Recipe
+
+
 def get_recipe(dish_name):
+    """Return dict of ingredient->grams by looking up `Recipe` model only.
+
+    - Looks up by slug first, then by name.
+    - Returns the ingredients dict (ingredient -> grams float) or None if not found.
     """
-    Returns dict: {ingredient: grams}
-    """
-    with open("data/recipe.txt", "r") as f:
-        for line in f:
-            dish, ing_part = line.strip().split("::")
-            if dish == dish_name:
-                ingredients = {}
-                for item in ing_part.split(","):
-                    name, grams = item.strip().split("=")
-                    ingredients[name] = float(grams)
-                return ingredients
+    # Expect dish_name to be either slug or exact name
+    try:
+        r = Recipe.objects.filter(slug=dish_name).first() or Recipe.objects.filter(name=dish_name).first()
+        if r:
+            return r.ingredients
+    except Exception:
+        # If DB access fails, return None (no fallback to file)
+        return None
     return None

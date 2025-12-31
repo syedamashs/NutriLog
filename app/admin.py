@@ -1,9 +1,11 @@
 from django.contrib import admin
 
 # Register your models here.
-from .models import MealLog, Profile
+from .models import MealLog, Profile, Recipe, Nutrition
 
 admin.site.register(MealLog)
+admin.site.register(Recipe)
+admin.site.register(Nutrition)
 
 @admin.register(Profile)
 class ProfileAdmin(admin.ModelAdmin):
