@@ -136,12 +136,11 @@ MEDIA_ROOT = BASE_DIR / 'media'
 DATA_URL = '/data/'
 DATA_ROOT = BASE_DIR / 'data'
 
-# During development, you can enable serving files from DATA_ROOT even when DEBUG=False
-# by setting the environment variable SERVE_DATA_LOCALLY=1 locally (useful when testing
-# production-like settings on your machine). Defaults to False to avoid accidentally
-# exposing local files when deployed on a host like Render.
+# During development, serve files from DATA_ROOT even when DEBUG=False by default
+# (useful when testing production-like settings on your machine). You can still
+# disable this by setting the environment variable SERVE_DATA_LOCALLY=0.
 import os
-SERVE_DATA_LOCALLY = os.environ.get('SERVE_DATA_LOCALLY', '0') in ('1','true','True')
+SERVE_DATA_LOCALLY = os.environ.get('SERVE_DATA_LOCALLY', '1') in ('1','true','True')
 
 LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/'

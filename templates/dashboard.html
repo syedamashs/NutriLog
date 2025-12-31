@@ -271,8 +271,9 @@
                     <button type="button" id="removeFile" class="remove-file-btn">Remove</button>
                 </div>
             </div>
-            <div id="uploadStatus" style="margin-top:8px;color:var(--muted);font-size:13px"></div>
-            </form>
+            <div id="uploadStatus" style="margin-top:8px;color:var(--muted);font-size:13px"></div>                {% if scan_error %}
+                    <div style="margin-top:8px;color:#ff6b6b;font-weight:700">Scan failed: {{ scan_error }}</div>
+                {% endif %}            </form>
 
 
 
@@ -404,7 +405,7 @@
 
     </main>
 
-    <footer>© Food Nutrition System • Django + YOLO</footer>
+    <footer>© Food Nutrition System • Django</footer>
 </div>
 
 <!-- Floating debug panel (captures window errors & console.error for quick debugging) -->

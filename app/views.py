@@ -33,6 +33,16 @@ def dashboard(request):
         context['items'] = _posted_items
         context['total'] = _posted_total
 
+    # If a scan error was stored in session, surface it once
+    scan_error = request.session.pop('scan_error', None)
+    if scan_error:
+        context['scan_error'] = scan_error
+
+    # If a scan_count was stored (number of detected items), surface it once
+    scan_count = request.session.pop('scan_count', None)
+    if scan_count is not None:
+        context['scan_count'] = scan_count
+
     # STEP 1: IMAGE UPLOAD → DETECT ITEMS
     if request.method == "POST" and "image" in request.FILES:
         image = request.FILES["image"]
@@ -41,10 +51,15 @@ def dashboard(request):
         filename = fs.save(image.name, image)
         image_path = fs.path(filename)
 
-        foods = predict_foods(image_path)
-
-        # store detected items in session and redirect to avoid form re-submission on reload
-        request.session['detected_items'] = foods
+        try:
+            foods = predict_foods(image_path)
+            request.session['detected_items'] = foods
+            request.session['scan_count'] = len(foods)
+        except Exception as e:
+            # store a one-time scan error for display
+            request.session['detected_items'] = []
+            request.session['scan_error'] = str(e)
+            request.session['scan_count'] = 0
         return redirect('dashboard')
 
     # STEP 2: WEIGHTS SUBMITTED → CALCULATE + SAVE

@@ -216,3 +216,53 @@ class HistoryGoalTests(TestCase):
         self.assertNotEqual(m1.running_calories, 0)
         self.assertNotEqual(m2.running_calories, 0)
 
+    def test_data_files_served_locally(self):
+        # Ensure developer-friendly /data/ route is available and serves files from DATA_ROOT
+        resp = self.client.get('/data/nutrilog_logo.png')
+        self.assertIn(resp.status_code, (200, 301, 302))
+        # If redirected (301/302) follow it and assert the file content was returned
+        if resp.status_code in (301, 302):
+            redirected = self.client.get(resp.url)
+            self.assertEqual(redirected.status_code, 200)
+        else:
+            self.assertEqual(resp.status_code, 200)
+
+class YOLOApiTests(TestCase):
+    def test_predict_foods_success(self):
+        import tempfile, os
+        from unittest.mock import patch, MagicMock
+        from app.yolo import predict_foods, YOLOApiError
+
+        with tempfile.NamedTemporaryFile(delete=False) as tf:
+            tf.write(b'fake image data')
+            tf.flush()
+        try:
+            mock_resp = MagicMock()
+            mock_resp.status_code = 200
+            mock_resp.json.return_value = {'foods': ['Rice', 'Curry', 'Rice']}
+            with patch('app.yolo.requests.post', return_value=mock_resp) as mpost:
+                res = predict_foods(tf.name)
+                self.assertEqual(res, ['Rice', 'Curry'])
+                called_url = mpost.call_args[0][0]
+                self.assertTrue(called_url.endswith('/predict'))
+        finally:
+            os.unlink(tf.name)
+
+    def test_predict_foods_non_200_raises(self):
+        import tempfile, os
+        from unittest.mock import patch, MagicMock
+        from app.yolo import predict_foods, YOLOApiError
+
+        with tempfile.NamedTemporaryFile(delete=False) as tf:
+            tf.write(b'fake')
+            tf.flush()
+        try:
+            mock_resp = MagicMock()
+            mock_resp.status_code = 500
+            mock_resp.text = 'oops'
+            with patch('app.yolo.requests.post', return_value=mock_resp):
+                with self.assertRaises(YOLOApiError):
+                    predict_foods(tf.name)
+        finally:
+            os.unlink(tf.name)
+

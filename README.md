@@ -5,7 +5,7 @@ A compact Django app to log meals and get fast calorie/macros analytics.
 Quick facts
 - Framework: Django
 - DB (development): SQLite (`db.sqlite3`)
-- Optional: YOLO (ultralytics) for image-based detection
+- Optional: Image detection via external YOLO microservice (configure `YOLO_API_URL`) 
 
 ---
 
@@ -60,7 +60,7 @@ These fields are used by the analytics views to compute series, totals, heatmaps
 ## Workflow / How the app works (high level)
 
 1. User registers / logs in and can set their profile (age, sex, height, weight).
-2. On the dashboard users can upload a food image (optional) — YOLO model predicts probable foods.
+2. On the dashboard users can upload a food image (optional) — a remote YOLO microservice (configurable via `YOLO_API_URL`) predicts probable foods.
 3. Detected items are turned into nutrition data (via `recipe.py` / `nutrition.py`) and saved as `MealLog` entries.
 4. `analytics` / `history` views compute summaries, trends, heatmaps and per-day flags (goal achieved) using `MealLog` data.
 5. Users can export CSV of their logs from the history/analytics page.
@@ -113,7 +113,7 @@ These fields are used by the analytics views to compute series, totals, heatmaps
 
 - Database: this project uses SQLite by default (`db.sqlite3`) — good for development. For production, switch to PostgreSQL or another DB and update `food_nutrition/settings.py`.
 - Media & uploads: the `media/` folder is included; ensure `MEDIA_ROOT`/`MEDIA_URL` are set for production and served appropriately.
-- YOLO model: `ml/food_yolo.pt` is required for image-based predictions; if you don't need image detection you can skip installing `ultralytics` and the model will not be used.
+- Image detection: predictions are performed by an external Hugging Face Space (YOLO microservice). Set `YOLO_API_URL` to the full predict endpoint (for example: `https://amashtce-food-yolo-api.hf.space/predict`). Installing `ultralytics` or keeping a local model is no longer required.
 - If you plan to deploy, remember to set `DEBUG=False`, configure `ALLOWED_HOSTS`, and set a secure `SECRET_KEY`.
 
 ---
