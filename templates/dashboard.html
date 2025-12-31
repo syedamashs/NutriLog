@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Food Nutrition Dashboard</title>
+    <title>NutriLog - Dashboard</title>
+    <link rel="icon" type="image/png" href="/data/nutrilog_logo.png">
 
     <!-- Google Font -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
@@ -48,7 +49,7 @@
         .brand{
             display:flex;align-items:center;gap:12px
         }
-        .logo{width:64px;height:64px;border-radius:10px;display:flex;align-items:center;justify-content:center;overflow:hidden;box-shadow:0 8px 28px rgba(0,0,0,0.28);border:1px solid rgba(255,255,255,0.03);transition:transform .32s cubic-bezier(.2,.9,.3,1)}
+        .logo{width:64px;height:64px;border-radius:10px;display:flex;align-items:center;justify-content:center;overflow:hidden;box-shadow:0 8px 28px rgba(0,0,0,0.28);border:1px solid rgba(255,255,255,0.03);transition:transform .32s cubic-bezier(.2,.9,.3,1);cursor:pointer}
         .logo img{width:100%;height:100%;object-fit:cover;display:block}
         .logo-fallback{font-weight:900;font-size:18px}
         .logo:hover{transform:translateY(-8px) scale(1.22) rotate(-8deg)}
@@ -75,6 +76,29 @@
         .fn-modal-footer{margin-top:14px;display:flex;gap:8px;align-items:center}
         .fn-github{padding:8px 12px;border-radius:8px;background:#111827;color:#fff;text-decoration:none;display:inline-block}
         
+        /* Goal modal (celebration) */
+        .goal-overlay{position:fixed;left:0;top:0;right:0;bottom:0;display:none;align-items:center;justify-content:center;background:rgba(4,10,20,0.6);backdrop-filter:blur(6px);z-index:10010}
+        .goal-overlay.show{display:flex}
+        .goal-card{width:min(420px,92%);background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01));padding:22px;border-radius:12px;border:1px solid rgba(255,255,255,0.04);box-shadow:0 18px 60px rgba(2,6,23,0.7);color:#e6eef8;position:relative;transform:translateY(-6px);opacity:0;transition:transform .28s cubic-bezier(.2,.9,.3,1),opacity .18s}
+        .goal-overlay.show .goal-card{transform:translateY(0);opacity:1}
+        .goal-close{position:absolute;right:10px;top:10px;background:transparent;border:none;color:#e6eef8;font-size:18px;cursor:pointer}
+        .goal-emoji{font-size:46px;text-align:center;margin-top:6px}
+        .goal-title{text-align:center;font-size:18px;font-weight:800;margin-top:8px}
+        .goal-desc{text-align:center;color:var(--muted);margin-top:6px}
+        .goal-stats{text-align:center;color:var(--muted);margin-top:8px}
+        /* confetti/sparks */
+        .goal-confetti{position:absolute;left:0;top:0;right:0;bottom:0;pointer-events:none}
+        .goal-confetti .spark{position:absolute;left:50%;top:40%;width:10px;height:10px;border-radius:50%;opacity:0;transform:translate(-50%,-50%)}
+        .goal-confetti .spark.s1{background:#ff7a9a;--tx:-70px;--ty:-40px;--delay:0s}
+        .goal-confetti .spark.s2{background:#ffd6a5;--tx:60px;--ty:-50px;--delay:0.03s}
+        .goal-confetti .spark.s3{background:#7b61ff;--tx:-40px;--ty:60px;--delay:0.06s}
+        .goal-confetti .spark.s4{background:#ffcc5c;--tx:40px;--ty:70px;--delay:0.09s}
+        .goal-confetti .spark.s5{background:#ff6bd6;--tx:-20px;--ty:-80px;--delay:0.12s}
+        .goal-confetti .spark.s6{background:#00b4ff;--tx:80px;--ty:-20px;--delay:0.15s}
+        .goal-confetti .spark.s7{background:#ffd1e6;--tx:-90px;--ty:20px;--delay:0.18s}
+        .goal-confetti .spark.s8{background:#90f7ec;--tx:90px;--ty:30px;--delay:0.21s}
+        @keyframes spark-burst{0%{opacity:1;transform:translate(-50%,-50%) scale(1)}70%{opacity:1;transform:translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(.9) rotate(45deg)}100%{opacity:0;transform:translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(.7) rotate(90deg)}}
+        .goal-confetti .spark{animation:spark-burst .9s cubic-bezier(.2,.9,.2,1) both;animation-delay:var(--delay)}
 
         /* profile avatar and dropdown */
         .profile-menu{position:relative}
@@ -82,12 +106,21 @@
         .profile-avatar .initial{font-weight:900}
         .profile-dropdown{position:absolute;right:0;top:48px;background:#071022;border:1px solid rgba(255,255,255,0.04);padding:8px;border-radius:8px;min-width:140px;display:none;z-index:999}
         .profile-dropdown a{display:block;padding:8px;color:#e6eef8;text-decoration:none;border-radius:6px}
-        .profile-dropdown a:hover{background:rgba(255,255,255,0.02)}
+        /* Unified dropdown hover styles (match profile) */
+        .profile-dropdown a:hover{background:rgba(0,180,255,0.12);color:#ffffff;font-weight:700}
+        .muted-btn:hover{background:rgba(0,180,255,0.08);color:#00b4ff;border-color:rgba(0,180,255,0.85)}
+        .range-btn:hover{background:rgba(0,180,255,0.06);color:#00b4ff}
+        /* Select styling */
+        select{background:rgba(255,255,255,0.02);color:#e6eef8;border:1px solid rgba(255,255,255,0.04);padding:8px;border-radius:8px}
+        select:focus{outline:2px solid rgba(0,180,255,0.12);box-shadow:0 6px 18px rgba(0,180,255,0.06) ;}
+        select option{background:#071022;color:#e6eef8} 
 
         nav{display:flex;gap:12px;align-items:center}
         .btn, .muted-btn{padding:10px 14px;border-radius:10px;border:none;cursor:pointer;font-weight:600}
         .btn{background:linear-gradient(90deg,#ff7a9a,#ffb199);color:#071028}
         .muted-btn{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted)}
+        /* Large button modifier: increase size without changing hover */
+        .btn.large-btn{font-size:16px;padding:13px 17px;border-radius:12px}
 
         .grid {
             display:grid;
@@ -102,6 +135,14 @@
        .upload-preview img{width:72px;height:72px;object-fit:cover;border-radius:8px;border:1px solid rgba(255,255,255,0.04)}
        .file-meta{font-size:13px;color:var(--muted)}
        .remove-file-btn{background:transparent;border:none;color:#ff8b8b;cursor:pointer;font-weight:700;padding:6px}
+
+       /* Camera modal for real-time capture */
+       .camera-modal{position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(4,10,20,0.8);display:none;align-items:center;justify-content:center;z-index:9999}
+       .camera-modal.show{display:flex}
+       .camera-card{width:min(720px,96%);background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01));padding:14px;border-radius:10px;border:1px solid rgba(255,255,255,0.04);box-shadow:0 18px 60px rgba(2,6,23,0.7);color:#e6eef8}
+       .camera-card video{width:100%;height:auto;border-radius:8px;background:#000}
+       .camera-actions{display:flex;gap:8px;justify-content:center;margin-top:10px}
+       .camera-actions .btn{padding:8px 12px}
 
        /* stacked right panel spacing once grid is single-column */
        .right-panel{position:relative;margin-top:10px}
@@ -166,10 +207,12 @@
         .chart-card{background:rgba(255,255,255,0.02);padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.02);min-height:140px;display:flex;align-items:center;justify-content:center}
         .chart-card canvas{width:100%;height:120px}
 
-        /* Streak badge (large but moderate) */
-        .streak-badge{display:inline-grid;place-items:center;width:48px;height:48px;border-radius:10px;font-weight:900;color:#fff;font-size:18px;box-shadow:0 8px 20px rgba(0,0,0,0.45);position:relative;padding:6px;text-decoration:none;z-index:10;border:1px solid rgba(255,255,255,0.04)}
-        .streak-badge .streak-fire{position:absolute;left:6px;top:4px;font-size:16px;filter:drop-shadow(0 2px 6px rgba(0,0,0,0.18))}
-        .streak-badge .streak-num{font-size:18px;font-weight:900;color:#071028}
+        /* Streak badge (compact, matching other pages) */
+        .streak-badge{display:inline-grid;place-items:center;width:40px;height:40px;border-radius:8px;font-weight:900;color:#fff;font-size:16px;box-shadow:0 6px 14px rgba(0,0,0,0.34);position:relative;padding:4px 8px 4px 8px;text-decoration:none;z-index:10;border:1px solid rgba(255,255,255,0.04);cursor:pointer}
+        /* Flame anchored in corner and slightly larger so it's prominent but not overlapping */
+        .streak-badge .streak-fire{position:absolute;left:4px;top:6px;font-size:14px;filter:drop-shadow(0 1px 4px rgba(0,0,0,0.12));line-height:1;z-index:13}
+        /* Ensure number is readable and pushed right of flame */
+        .streak-badge .streak-num{font-size:16px;font-weight:900;color:#071028;margin-left:6px;position:relative;z-index:12}
         /* Dashboard modifier: slightly larger for home page */
         .streak-badge--home{width:64px;height:64px;border-radius:12px;font-size:20px;background:var(--accent-solid);color:#071028;z-index:20}
         .streak-badge--home .streak-fire{font-size:20px}
@@ -223,7 +266,7 @@
 
             <nav>
                 {% if user.is_authenticated %}
-                    <a href="/history/" class="muted-btn">Analytics</a>
+                    <a href="/history/" class="muted-btn" style="text-decoration: none;">Analytics</a>
                 {% else %}
                     <a href="/login/" class="muted-btn">Login</a>
                     <a href="/register/" class="muted-btn">Register</a>
@@ -246,21 +289,21 @@
     <main class="grid">
         <!-- Left: Upload + Detection -->
         <section class="panel">
-            <h3 style="margin:0 0 10px">Scan Food Image</h3>
+            <h3 style="margin:0 0 10px">Upload Food Image</h3>
 
             <form method="post" enctype="multipart/form-data" id="uploadForm">
                 {% csrf_token %}
-            <label class="upload-area" for="imageInput">
+            <div class="upload-area" id="uploadArea">
                 <div class="upload-info">
-                    <div class="upload-title">Drop or choose an image</div>
+                    <div class="upload-title">Drop an image or click <strong>Upload Food</strong></div>
                     <div class="upload-desc">High-quality photos yield better detection. Try top-down shots of the plate.</div>
                 </div>
                 <div style="display:flex;gap:8px;align-items:center">
-                    <button type="button" class="file-btn" id="chooseBtn">Choose</button>
-                    <button type="submit" class="btn" id="scanBtn" disabled>Scan Food</button>
+                    <button type="button" class="btn large-btn" id="cameraBtn">📷 Camera</button>
+                    <button type="button" class="btn large-btn" id="scanBtn">Upload Food</button>
                 </div>
-            </label>
-            <input type="file" name="image" id="imageInput" accept="image/*" required style="display:none">
+            </div>
+            <input type="file" name="image" id="imageInput" accept="image/*" required style="position:absolute;left:-9999px;" aria-hidden="true">
             <div id="uploadPreview" class="upload-preview">
                 <img id="uploadThumb" src="" alt="preview">
                 <div style="display:flex;flex-direction:column">
@@ -273,7 +316,55 @@
             </div>
             <div id="uploadStatus" style="margin-top:8px;color:var(--muted);font-size:13px"></div>                {% if scan_error %}
                     <div style="margin-top:8px;color:#ff6b6b;font-weight:700">Scan failed: {{ scan_error }}</div>
-                {% endif %}            </form>
+                {% endif %}
+
+            <!-- Daily goal reached modal (hidden unless triggered) -->
+            <div id="goalModal" class="goal-overlay" role="dialog" aria-modal="true" aria-hidden="true">
+                <div class="goal-card">
+                    <button id="goalModalClose" class="goal-close" aria-label="Close">✕</button>
+                    <div class="goal-emoji">🎉</div>
+                    <h3 class="goal-title">Daily Goal Reached!</h3>
+                    <div class="goal-desc">Great job — you've met your daily target.</div>
+                    <div class="goal-stats">Total: <strong>{% if goal_total %}{{ goal_total|floatformat:2 }}{% else %}—{% endif %} kcal</strong> • Goal: <strong>{% if goal_val %}{{ goal_val|floatformat:2 }}{% else %}—{% endif %} kcal</strong></div>
+                    <div class="goal-confetti" aria-hidden="true">
+                        <span class="spark s1"></span>
+                        <span class="spark s2"></span>
+                        <span class="spark s3"></span>
+                        <span class="spark s4"></span>
+                        <span class="spark s5"></span>
+                        <span class="spark s6"></span>
+                        <span class="spark s7"></span>
+                        <span class="spark s8"></span>
+                    </div>
+                </div>
+            </div>
+
+            {% if goal_reached %}
+            <script>
+                (function(){
+                    const modal = document.getElementById('goalModal');
+                    if(!modal) return;
+                    modal.setAttribute('aria-hidden','false');
+                    modal.classList.add('show');
+                    const close = () => { modal.classList.remove('show'); modal.setAttribute('aria-hidden','true'); };
+                    document.getElementById('goalModalClose').addEventListener('click', close);
+                    // Auto close after 5s
+                    setTimeout(close, 5000);
+                })();
+            </script>
+            {% endif %}
+            <!-- Camera modal for live capture -->
+            <div id="cameraModal" class="camera-modal" role="dialog" aria-hidden="true">
+                <div class="camera-card">
+                    <video id="cameraVideo" autoplay playsinline></video>
+                    <div class="camera-actions">
+                        <button type="button" id="captureBtn" class="btn">Capture</button>
+                        <button type="button" id="cancelCamBtn" class="muted-btn">Cancel</button>
+                    </div>
+                </div>
+            </div>
+
+            </form>
 
 
 
@@ -281,6 +372,7 @@
             {% if detected_items %}
             <div class="detected-block" style="margin-top:18px">
                 <h4 style="margin-bottom:8px">Detected Items <span style="color:var(--muted);font-size:13px">({{ detected_items|length }})</span></h4>
+                <div style="color:var(--muted);font-size:13px;margin-bottom:8px">Tip: leave empty if it's not your dish — only filled weights are counted.</div>
                 <div class="detected-list">
                     <form method="post" id="weightsForm">
                         {% csrf_token %}
@@ -300,7 +392,7 @@
                             <div class="detected-card">
                                 <div class="name">{{ item }}</div>
                                 <input type="hidden" name="detected_items" value="{{ item }}">
-                                <input type="number" name="grams_{{ item }}" placeholder="grams" required>
+                                <input type="number" name="grams_{{ item }}" placeholder="grams">
                             </div>
                         {% endfor %}
                         <div style="grid-column:1/-1;margin-top:12px">
@@ -405,7 +497,7 @@
 
     </main>
 
-    <footer>© Food Nutrition System • Django</footer>
+    <footer>© NutriLog • Django</footer>
 </div>
 
 <!-- Floating debug panel (captures window errors & console.error for quick debugging) -->
@@ -465,10 +557,30 @@
         const removeBtn = document.getElementById('removeFile');
         const uploadStatus = document.getElementById('uploadStatus');
 
-        if(chooseBtn){
-            chooseBtn.addEventListener('click', function(){ if(imageInput) imageInput.click(); });
-        }
         if(imageInput && scanBtn){
+            // Small on-screen toast helper
+            function showToast(msg, timeout){
+                try{
+                    const t = document.getElementById('toast');
+                    if(!t) return;
+                    t.textContent = msg || '';
+                    t.style.display = 'block';
+                    setTimeout(function(){ t.style.display = 'none'; }, timeout || 3000);
+                }catch(e){ console.warn('toast error', e); }
+            }
+
+            // Make Scan button open the file picker with debug + UX feedback
+            scanBtn.addEventListener('click', function(){
+                try{
+                    console.log('scanBtn clicked');
+                    if(!imageInput){ console.warn('imageInput missing'); showToast('File input missing'); return; }
+                    scanBtn.textContent = 'Select image…';
+                    imageInput.click();
+                    showToast('Opening file picker...');
+                    setTimeout(function(){ scanBtn.textContent = 'Upload Food'; }, 4000);
+                }catch(err){ console.error('Error opening file picker', err); showToast('Could not open file selector'); }
+            });
+
             function formatBytes(bytes){ if(bytes<1024) return bytes+' B'; if(bytes<1048576) return (bytes/1024).toFixed(1)+' KB'; return (bytes/1048576).toFixed(1)+' MB'; }
             function showPreview(file){
                 if(!file){ uploadPreview.style.display = 'none'; fileNameEl.textContent='No file selected'; fileSizeEl.textContent=''; uploadThumb.src=''; uploadStatus.textContent=''; return; }
@@ -479,12 +591,25 @@
                 reader.onload = function(e){ uploadThumb.src = e.target.result || ''; };
                 reader.readAsDataURL(file);
                 uploadStatus.textContent = 'Ready to scan';
-                scanBtn.disabled = false;
             }
+
             imageInput.addEventListener('change', function(){
-                const f = imageInput.files && imageInput.files[0];
-                showPreview(f);
+                try{
+                    console.log('imageInput change event - files:', imageInput.files && imageInput.files.length);
+                    const f = imageInput.files && imageInput.files[0];
+                    showPreview(f);
+                    if(f){
+                        showToast('File selected, uploading...');
+                        // Auto-submit the form once a file is chosen
+                        if(uploadForm){
+                            setTimeout(function(){ uploadForm.submit(); }, 250);
+                        }else{
+                            console.warn('uploadForm not found'); showToast('Upload form missing');
+                        }
+                    }
+                }catch(e){ console.error('Error handling image selection', e); showToast('Error selecting file'); }
             });
+
             removeBtn && removeBtn.addEventListener('click', function(){
                 imageInput.value = '';
                 showPreview(null);
@@ -492,6 +617,50 @@
             });
             // start state
             showPreview(imageInput.files && imageInput.files[0] || null);
+
+            // Camera capture: open modal, stream, capture frame and submit as file
+            const cameraBtn = document.getElementById('cameraBtn');
+            const cameraModal = document.getElementById('cameraModal');
+            const cameraVideo = document.getElementById('cameraVideo');
+            const captureBtn = document.getElementById('captureBtn');
+            const cancelCamBtn = document.getElementById('cancelCamBtn');
+            let cameraStream = null;
+
+            async function openCamera(){
+                try{
+                    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ showToast('Camera not supported'); return; }
+                    cameraModal.classList.add('show'); cameraModal.setAttribute('aria-hidden','false');
+                    cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+                    cameraVideo.srcObject = cameraStream;
+                    cameraVideo.play();
+                }catch(e){ console.error('Could not open camera', e); showToast('Camera access denied or not available'); cameraModal.classList.remove('show'); cameraModal.setAttribute('aria-hidden','true'); }
+            }
+            function closeCamera(){
+                try{ if(cameraStream){ cameraStream.getTracks().forEach(t=>t.stop()); cameraStream = null; } cameraVideo.srcObject = null; cameraModal.classList.remove('show'); cameraModal.setAttribute('aria-hidden','true'); }catch(e){console.warn('Error closing camera', e)}
+            }
+            cameraBtn && cameraBtn.addEventListener('click', function(){ openCamera(); });
+            cancelCamBtn && cancelCamBtn.addEventListener('click', function(){ closeCamera(); });
+            captureBtn && captureBtn.addEventListener('click', async function(){
+                try{
+                    // draw current frame to canvas
+                    const w = cameraVideo.videoWidth || 1280; const h = cameraVideo.videoHeight || 720;
+                    const c = document.createElement('canvas'); c.width = w; c.height = h;
+                    const ctx = c.getContext('2d'); ctx.drawImage(cameraVideo, 0, 0, w, h);
+                    // get blob
+                    const dataUrl = c.toDataURL('image/jpeg', 0.9);
+                    // convert dataURL to blob
+                    const res = await fetch(dataUrl); const blob = await res.blob();
+                    const file = new File([blob], ('capture-'+Date.now()+'.jpg'), { type: 'image/jpeg' });
+                    // set file into imageInput using DataTransfer
+                    try{
+                        const dt = new DataTransfer(); dt.items.add(file); imageInput.files = dt.files;
+                        showPreview(file);
+                        showToast('Captured image, uploading...');
+                        closeCamera();
+                        if(uploadForm){ setTimeout(()=> uploadForm.submit(), 250); }
+                    }catch(e){ console.error('Error setting captured file', e); showToast('Capture failed'); }
+                }catch(e){ console.error('Capture failed', e); showToast('Capture failed'); }
+            });
         }
 
         // show uploading state when the form is submitted

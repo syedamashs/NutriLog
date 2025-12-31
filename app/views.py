@@ -43,6 +43,15 @@ def dashboard(request):
     if scan_count is not None:
         context['scan_count'] = scan_count
 
+    # If a meal triggered the daily goal being reached, surface it once (for a modal)
+    goal_reached = request.session.pop('goal_reached', None)
+    goal_total = request.session.pop('goal_total', None)
+    goal_val = request.session.pop('goal_val', None)
+    if goal_reached:
+        context['goal_reached'] = True
+        context['goal_total'] = goal_total
+        context['goal_val'] = goal_val
+
     # STEP 1: IMAGE UPLOAD → DETECT ITEMS
     if request.method == "POST" and "image" in request.FILES:
         image = request.FILES["image"]
@@ -77,7 +86,18 @@ def dashboard(request):
         }
 
         for food in foods:
-            grams = float(request.POST.get(f"grams_{food}", 0))
+            raw = (request.POST.get(f"grams_{food}", "") or "").strip()
+            # If the user left this field blank, skip it (do not count in totals)
+            if raw == "":
+                continue
+            try:
+                grams = float(raw)
+            except (ValueError, TypeError):
+                # invalid input — skip it
+                continue
+            # ignore zero or negative values
+            if grams <= 0:
+                continue
 
             recipe = get_recipe(food)
             if recipe:
@@ -97,6 +117,14 @@ def dashboard(request):
                 for k in ("calories","protein_g","fat_g","carbs_g","fiber_g"):
                     total[k] += nutrition[k]
 
+        # If the user submitted but left all weights blank / invalid, do not save an empty meal
+        if not items:
+            request.session['scan_error'] = 'No weights entered — nothing was saved. Leave fields blank to ignore detected items.'
+            return redirect('dashboard')
+
+        # round totals
+        for k in total:
+            total[k] = round(total[k], 2)
         # round totals
         for k in total:
             total[k] = round(total[k], 2)
@@ -138,8 +166,16 @@ def dashboard(request):
                 goal_val = 2000
 
             day_total = MealLog.objects.filter(user=request.user, created_at__gte=day_start, created_at__lt=day_end).aggregate(total=Sum('calories'))['total'] or 0
-            achieved = True if (day_total > 0 and day_total <= goal_val) else False
+            # Check whether the day was already marked as achieved before this save
+            prev_achieved = MealLog.objects.filter(user=request.user, created_at__gte=day_start, created_at__lt=day_end, day_goal_achieved=True).exists()
+            # Consider goal reached when daily total is >= the goal
+            achieved = True if (day_total >= goal_val and day_total > 0) else False
             MealLog.objects.filter(user=request.user, created_at__gte=day_start, created_at__lt=day_end).update(day_goal_achieved=achieved)
+            # If this save crossed the goal (wasn't achieved before but is now), set a session flag to show a celebration modal
+            if achieved and not prev_achieved:
+                request.session['goal_reached'] = True
+                request.session['goal_total'] = day_total
+                request.session['goal_val'] = goal_val
         except Exception:
             pass
 
@@ -270,6 +306,9 @@ def history(request):
     else:
         status = "over"
         diff = round(total_today["calories"] - goal, 2)
+
+    # Remaining calories to reach today's goal (non-negative)
+    remaining_goal = max(0, round(goal - total_today["calories"], 2))
 
     # MEALS grouped by date for the detailed list (only include logs inside the selected range)
     grouped = OrderedDict()
@@ -445,6 +484,7 @@ def history(request):
         'meal_type_items': meal_type_items,
         'macros_totals': macros_totals,
         'calendar_heatmap': cal_heat,
+        'remaining_goal': remaining_goal,
         'weekly_max_adj': max(100, round(max((s['calories'] for s in series), default=0) * 1.1, 2)),
         'days_with_data': days_with_data,
         'max_daily_calories': max_daily_calories,
