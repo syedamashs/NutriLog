@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-r4os17scigs*8ye5-t-nrwch!rq2w!9bfdza*o=d-$(g+j5u%e
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['*','127.0.0.1','localhost','testserver']
 
 
 # Application definition
@@ -135,6 +135,13 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # Additional dev-only data assets directory (serve from /data/)
 DATA_URL = '/data/'
 DATA_ROOT = BASE_DIR / 'data'
+
+# During development, you can enable serving files from DATA_ROOT even when DEBUG=False
+# by setting the environment variable SERVE_DATA_LOCALLY=1 locally (useful when testing
+# production-like settings on your machine). Defaults to False to avoid accidentally
+# exposing local files when deployed on a host like Render.
+import os
+SERVE_DATA_LOCALLY = os.environ.get('SERVE_DATA_LOCALLY', '0') in ('1','true','True')
 
 LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/'
