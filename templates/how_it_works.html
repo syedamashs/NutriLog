@@ -1,0 +1,72 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>How It Works — NutriLog</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    body{font-family:Inter,Arial,sans-serif}
+    /* Compact landing-dark overrides for public pages */
+    .landing-dark{background:linear-gradient(180deg,#071024,#071a2e);color:#e6eef8}
+    .landing-dark .text-slate-900{color:#e6eef8!important}
+    .landing-dark .text-slate-600,.landing-dark .text-slate-500{color:#9fb3d9!important}
+    .landing-dark .bg-slate-50{background:rgba(255,255,255,0.02)!important}
+    .landing-dark .bg-white{background:rgba(255,255,255,0.03)!important}
+    .register-cta{background:linear-gradient(90deg,#00b4ff,#00a0e6);color:#071024;font-weight:700;box-shadow:0 10px 30px rgba(0,180,255,0.08)}
+    .register-cta:hover{box-shadow:0 16px 40px rgba(0,180,255,0.12);transform:translateY(-2px)}
+  </style>
+</head>
+<body class="landing-dark">
+  <nav class="py-6">
+    <div class="max-w-6xl mx-auto px-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <img src="/data/nutrilog_logo.png" alt="NutriLog" class="w-10 h-10 object-contain">
+        <span class="font-bold text-lg">NutriLog</span>
+      </div>
+      <div class="hidden md:flex items-center gap-6">
+        <a href="{% url 'home' %}" class="text-slate-600 hover:text-slate-900">Home</a>
+        <a href="{% url 'pricing' %}" class="text-slate-600 hover:text-slate-900">Pricing</a>
+        <a href="{% url 'login' %}" class="text-slate-600 hover:text-slate-900">Log in</a>
+      </div>
+    </div>
+  </nav>
+
+  <header class="py-12">
+    <div class="max-w-6xl mx-auto px-4">
+      <h1 class="text-3xl font-extrabold text-slate-100">How NutriLog Works</h1>
+      <p class="mt-3 text-slate-300 max-w-2xl">Quick overview of scanning, automatic detection, and meal logging — designed to be fast and simple.</p>
+    </div>
+  </header>
+
+  <section class="py-16">
+    <div class="max-w-6xl mx-auto px-4 grid md:grid-cols-3 gap-8">
+      <div class="p-6 bg-black/6 rounded-lg">
+        <h3 class="font-bold mb-2 text-slate-100">Step 1 — Take a Photo</h3>
+        <p class="text-slate-300">Point your camera at your plate, and NutriLog's vision model detects ingredients instantly.</p>
+      </div>
+      <div class="p-6 bg-black/6 rounded-lg">
+        <h3 class="font-bold mb-2 text-slate-100">Step 2 — Confirm Items</h3>
+        <p class="text-slate-300">Quickly confirm detections and adjust portion sizes if needed.</p>
+      </div>
+      <div class="p-6 bg-black/6 rounded-lg">
+        <h3 class="font-bold mb-2 text-slate-100">Step 3 — Save Meal</h3>
+        <p class="text-slate-300">Save the meal to get accurate calorie and macro totals in your daily log.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="py-12">
+    <div class="max-w-6xl mx-auto px-4 text-center">
+      <h2 class="text-2xl font-bold text-slate-100">Why it works</h2>
+      <p class="mt-3 text-slate-300 max-w-2xl mx-auto">We combine a proven vision model with nutrition databases and sensible defaults to give useful estimates for everyday meals.</p>
+    </div>
+  </section>
+
+  <footer class="py-8 text-center text-sm text-slate-500">© NutriLog • Built with ❤️</footer>
+
+  <script>lucide.createIcons();</script>
+</body>
+</html>

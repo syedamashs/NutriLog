@@ -1,0 +1,244 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NutriLog - Smart Food Tracking</title>
+    <link rel="icon" type="image/png" href="/data/nutrilog_logo.png">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#e6f9ff',
+                            100: '#ccf2ff',
+                            500: '#00b4ff',
+                            600: '#00a0e6',
+                            700: '#0086cc',
+                            900: '#071024',
+                        }
+                    },
+                    animation: {
+                        'scan': 'scan 2.5s linear infinite',
+                    },
+                    keyframes: {
+                        scan: {
+                            '0%': { top: '0%' },
+                            '50%': { top: '100%' },
+                            '100%': { top: '0%' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
+        /* Dashboard-style dark landing overrides */
+        .landing-dark { background: linear-gradient(180deg,#071024,#071a2e); color: #e6eef8; }
+        .landing-dark .text-slate-900 { color: #e6eef8 !important; }
+        .landing-dark .text-slate-600, .landing-dark .text-slate-500 { color: #9fb3d9 !important; }
+        .landing-dark .bg-white { background: rgba(255,255,255,0.03) !important; color: inherit; border-color: rgba(255,255,255,0.04) !important; }
+        .landing-dark .bg-slate-50 { background: rgba(255,255,255,0.02) !important; }
+        .landing-dark .bg-slate-900 { background: linear-gradient(180deg,#071024,#071a2e) !important; }
+        .landing-dark .bg-slate-200 { background: rgba(255,255,255,0.03) !important; }
+        .landing-dark .border-slate-200 { border-color: rgba(255,255,255,0.04) !important; }
+        .landing-dark .bg-brand-50 { background: rgba(0,180,255,0.06) !important; }
+        .landing-dark .text-brand-600 { color: #00b4ff !important; }
+        .glass-nav { background: rgba(10,14,20,0.6); backdrop-filter: blur(6px); border-bottom: 1px solid rgba(255,255,255,0.03); }
+        .scan-line { position: absolute; width: 100%; height: 2px; background: #00b4ff; box-shadow: 0 0 12px #00b4ff, 0 0 28px #00b4ff; z-index: 10; }
+        a:focus{outline:2px solid rgba(0,180,255,0.18);outline-offset:3px}
+        .btn.big{transition:transform .16s cubic-bezier(.2,.9,.3,1), box-shadow .16s}
+        .btn.big:focus{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,180,255,0.12)}
+        .register-cta{background:linear-gradient(90deg,#00b4ff,#00a0e6);color:#071024;font-weight:700;box-shadow:0 12px 30px rgba(0,180,255,0.12);border:none}
+        .register-cta:hover{box-shadow:0 18px 40px rgba(0,180,255,0.16);transform:translateY(-3px)}
+    </style>
+</head>
+<body class="landing-dark">
+
+    <nav class="glass-nav fixed w-full z-50 top-0 transition-all duration-300">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex-shrink-0 flex items-center gap-2 cursor-pointer">
+                    <div class="bg-brand-500 text-white p-1.5 rounded-lg">
+                        <i data-lucide="camera" class="w-5 h-5"></i>
+                    </div>
+                    <span class="font-bold text-xl tracking-tight text-slate-900">NutriLog<span class="text-brand-500">.ai</span></span>
+                </div>
+
+                <div class="hidden md:flex items-center space-x-8">
+                    <a href="{% url 'how_it_works' %}" class="text-sm font-medium text-slate-600 hover:text-brand-600 transition-colors">How it Works</a>
+                    <a href="{% url 'pricing' %}" class="text-sm font-medium text-slate-600 hover:text-brand-600 transition-colors">Pricing</a>
+                    <div class="flex items-center space-x-4 ml-4 border-l border-slate-200 pl-4">
+                        <a href="{% url 'login' %}" class="text-sm font-medium text-slate-900 hover:text-brand-600 transition-colors">Log In</a>
+                        <a href="{% url 'register' %}" class="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all shadow-md hover:shadow-lg">Register</a>
+                    </div>
+                </div>
+
+                <div class="md:hidden flex items-center">
+                    <button class="text-slate-600 hover:text-slate-900">
+                        <i data-lucide="menu" class="w-6 h-6"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <section class="pt-32 pb-16 lg:pt-40 lg:pb-24 overflow-hidden relative">
+        <div class="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 bg-brand-50 rounded-full blur-3xl opacity-50 z-0"></div>
+        
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div class="grid lg:grid-cols-2 gap-12 lg:gap-8 items-center">
+                
+                <div class="text-center lg:text-left">
+                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-50 text-brand-700 text-xs font-semibold mb-6 border border-brand-100">
+                        <span class="w-2 h-2 rounded-full bg-brand-500 animate-pulse"></span>
+                        V 2.0 Now Available
+                    </div>
+                    
+                    <h1 class="text-4xl lg:text-6xl font-extrabold text-slate-900 tracking-tight leading-tight mb-6">
+                        AI-powered food tracking, <br class="hidden lg:block" />
+                        <span class="text-transparent bg-clip-text bg-gradient-to-r from-brand-600 to-brand-500">made simple.</span>
+                    </h1>
+                    
+                    <p class="text-lg text-slate-600 mb-8 leading-relaxed max-w-2xl mx-auto lg:mx-0">
+                        Scan your plate, track nutrition in real time, and build healthier habits effortlessly. No more manual entry—just point, shoot, and eat.
+                    </p>
+                    
+                    <div class="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+                        <a href="{% url 'register' %}" class="flex items-center justify-center gap-2 register-cta px-8 py-3.5 rounded-xl text-base font-semibold transition-all hover:-translate-y-0.5">
+                            Start Tracking
+                            <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                        </a>
+                        <a href="{% url 'login' %}" class="flex items-center justify-center gap-2 bg-white border border-slate-200 hover:border-slate-300 text-slate-700 px-8 py-3.5 rounded-xl text-base font-semibold transition-all hover:bg-slate-50">
+                            Sign In
+                        </a>
+                    </div>
+
+                    <div class="mt-8 flex items-center justify-center lg:justify-start gap-4 text-sm text-slate-500">
+                        <div class="flex -space-x-2">
+                            <div class="w-8 h-8 rounded-full bg-slate-200 border-2 border-white flex items-center justify-center text-xs font-bold overflow-hidden"><img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="User"></div>
+                            <div class="w-8 h-8 rounded-full bg-slate-200 border-2 border-white flex items-center justify-center text-xs font-bold overflow-hidden"><img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Aneka" alt="User"></div>
+                            <div class="w-8 h-8 rounded-full bg-slate-200 border-2 border-white flex items-center justify-center text-xs font-bold overflow-hidden"><img src="https://api.dicebear.com/7.x/avataaars/svg?seed=John" alt="User"></div>
+                        </div>
+                        <p>Trusted by 10,000+ healthy eaters</p>
+                    </div>
+                </div>
+
+                <div class="relative mx-auto w-full max-w-md lg:max-w-full">
+                    <div class="relative rounded-2xl overflow-hidden shadow-2xl border-4 border-white bg-slate-900 aspect-[4/3] group" style="box-shadow: 0 30px 60px rgba(0,180,255,0.12);">
+                        
+                        <img src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80" alt="Healthy Bowl" class="w-full h-full object-cover opacity-90">
+                        
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+                        
+                        <div class="absolute inset-0 pointer-events-none">
+                            <div class="scan-line animate-scan"></div>
+                        </div>
+
+                        <div class="absolute top-1/4 left-1/4 w-24 h-24 border-2 border-brand-400 rounded-lg opacity-80 flex items-start justify-start">
+                            <span class="bg-brand-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-sm -mt-2 ml-2">Avocado</span>
+                        </div>
+                        <div class="absolute bottom-1/3 right-1/4 w-20 h-20 border-2 border-brand-400 rounded-lg opacity-80 flex items-start justify-start">
+                             <span class="bg-brand-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-sm -mt-2 ml-2">Salmon</span>
+                        </div>
+
+                        <div class="absolute bottom-6 left-6 right-6 bg-black/60 backdrop-blur-sm p-5 rounded-2xl shadow-lg flex justify-between items-center" style="border:1px solid rgba(0,180,255,0.08);">
+                            <div>
+                                <p class="text-xs text-slate-300 font-semibold uppercase tracking-wider">Current Meal</p>
+                                <p class="text-white font-extrabold text-lg">Healthy Salad Bowl</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-brand-400 font-extrabold text-xl">450 <span class="text-xs text-slate-300 font-normal">kcal</span></p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="absolute -z-10 top-10 -right-10 w-full h-full border-2 border-slate-200 rounded-2xl hidden lg:block"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center max-w-3xl mx-auto mb-16">
+                <h2 class="text-base font-semibold text-brand-600 tracking-wide uppercase">Features</h2>
+                <p class="mt-2 text-3xl font-bold leading-8 tracking-tight text-slate-900 sm:text-4xl">
+                    Smarter tracking for a better you
+                </p>
+                <p class="mt-4 text-lg text-slate-600">
+                    We combine advanced computer vision with nutritional science to make tracking your diet as easy as taking a photo.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow group transform hover:-translate-y-1">
+                    <div class="w-12 h-12 bg-brand-50 rounded-xl flex items-center justify-center mb-6 group-hover:bg-brand-100 transition-colors">
+                        <i data-lucide="camera" class="w-6 h-6 text-brand-600"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-900 mb-3">Real-time Detection</h3>
+                    <p class="text-slate-600 leading-relaxed">
+                        Our AI instantly identifies ingredients on your plate. No more searching through endless databases or weighing distinct items.
+                    </p>
+                </div>
+
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow group transform hover:-translate-y-1">
+                    <div class="w-12 h-12 bg-brand-50 rounded-xl flex items-center justify-center mb-6 group-hover:bg-brand-100 transition-colors">
+                        <i data-lucide="layers" class="w-6 h-6 text-brand-600"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-900 mb-3">Incremental Tracking</h3>
+                    <p class="text-slate-600 leading-relaxed">
+                        Adding seconds? The app tracks nutrition incrementally as you add food to your plate during the meal, ensuring accuracy.
+                    </p>
+                </div>
+
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow group transform hover:-translate-y-1">
+                    <div class="w-12 h-12 bg-brand-50 rounded-xl flex items-center justify-center mb-6 group-hover:bg-brand-100 transition-colors">
+                        <i data-lucide="bar-chart-2" class="w-6 h-6 text-brand-600"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-900 mb-3">Daily Insights</h3>
+                    <p class="text-slate-600 leading-relaxed">
+                        Visualize your macros and calories. Get personalized suggestions to hit your goals and build sustainable healthy habits.
+                    </p>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <footer class="py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-6">
+            <div class="flex items-center gap-2">
+                <div class="bg-slate-900 text-white p-1 rounded">
+                    <i data-lucide="camera" class="w-4 h-4"></i>
+                </div>
+                <span class="font-bold text-lg text-slate-900">NutriLog<span class="text-brand-600">.ai</span></span>
+            </div>
+            <div class="text-slate-500 text-sm">
+                &copy; 2024 NutriLog. All rights reserved.
+            </div>
+            <div class="flex space-x-6">
+                <a href="#" class="text-slate-400 hover:text-slate-600"><i data-lucide="twitter" class="w-5 h-5"></i></a>
+                <a href="#" class="text-slate-400 hover:text-slate-600"><i data-lucide="instagram" class="w-5 h-5"></i></a>
+                <a href="#" class="text-slate-400 hover:text-slate-600"><i data-lucide="linkedin" class="w-5 h-5"></i></a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

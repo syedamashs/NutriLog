@@ -81,4 +81,5 @@ def register_view(request):
 #LogOut_View
 def logout_view(request):
     logout(request)
-    return redirect("/login/")
+    # After logout, send users to the public homepage
+    return redirect('home')

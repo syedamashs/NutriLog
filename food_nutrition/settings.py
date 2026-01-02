@@ -23,7 +23,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-r4os17scigs*8ye5-t-nrwch!rq2w!9bfdza*o=d-$(g+j5u%e'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = ['*','127.0.0.1','localhost','testserver']
 
@@ -118,6 +118,8 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+# Project-level static directory so collectstatic picks up non-app static files
+STATICFILES_DIRS = [BASE_DIR / 'static']
 
 MIDDLEWARE.insert(
     1, 'whitenoise.middleware.WhiteNoiseMiddleware'

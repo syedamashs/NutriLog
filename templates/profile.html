@@ -19,6 +19,13 @@
         .streak-badge{display:inline-grid;place-items:center;width:40px;height:40px;border-radius:8px;font-weight:900;color:#fff;font-size:16px;box-shadow:0 6px 14px rgba(0,0,0,0.34);position:relative;padding:4px;text-decoration:none;z-index:10;border:1px solid rgba(255,255,255,0.04);cursor:pointer}
         .streak-badge .streak-fire{position:absolute;left:6px;top:6px;font-size:14px;filter:drop-shadow(0 1px 4px rgba(0,0,0,0.12))}
         .streak-badge .streak-num{font-size:16px;font-weight:900;color:#071028}
+        /* Disable hover lift on outer card for profile page (we want small inner boxes to lift) */
+        .card.anim-hover-lift, .card.anim-hover-lift:hover{transition:none!important;transform:none!important;box-shadow:none!important}
+        /* Small stat boxes: subtle hover lift */
+        .stat{transition:transform .18s cubic-bezier(.2,.9,.2,1),box-shadow .18s;border-radius:10px}
+        .stat:hover{transform:translateY(-6px);box-shadow:0 12px 26px rgba(0,0,0,0.22)}
+        /* Opt-out for boxes that should not lift */
+        .stat.no-lift:hover{transform:none;box-shadow:none}
         /* Dashboard modifier: slightly larger for home page */
         .profile-menu{position:relative}
         .profile-avatar{width:36px;height:36px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:linear-gradient(90deg,#ffd6a5,#ff7a9a);color:#071028;font-weight:800;border:1px solid rgba(255,255,255,0.03);cursor:pointer}
@@ -41,6 +48,7 @@
         .streak-increment{animation:streak-pop .95s cubic-bezier(.2,.9,.2,1)}
         @keyframes streak-pop{0%{transform:scale(1);opacity:1}40%{transform:scale(1.28);opacity:1}100%{transform:scale(1);opacity:1}}
     </style>
+    {% include 'partials/simple_animations_head.html' %}
 </head>
 <body>
 <div class="card">
@@ -54,7 +62,7 @@
             <div style="display:flex;align-items:center;gap:8px">
                 <div style="font-size:12px;color:#9fb3d9">Streak</div>
                 <a href="/analytics/logs/" style="text-decoration:none">
-                    <div class="streak-badge" data-count="{{ streak.count }}" data-color="{{ streak.color }}" role="img" aria-label="{{ streak.count }} day streak">
+                    <div class="streak-badge hover-lift" tabindex="0" data-count="{{ streak.count }}" data-color="{{ streak.color }}" role="img" aria-label="{{ streak.count }} day streak">
                         <span class="streak-fire">🔥</span>
                         <span class="streak-num">{{ streak.count }}</span>
                     </div>
@@ -64,7 +72,7 @@
             <a href="/" class="muted-btn" style="text-decoration: none;">Back to Dashboard</a>
             {% if user.is_authenticated %}
             <div style="margin-left:8px" class="profile-menu">
-                <button id="profileBtn" class="profile-avatar" aria-haspopup="true" aria-expanded="false" title="{{ user.username }}">
+                <button id="profileBtn" class="profile-avatar hover-lift" tabindex="0" aria-haspopup="true" aria-expanded="false" title="{{ user.username }}">
                     <span class="initial">{{ user.username|slice:":1"|upper }}</span>
                 </button>
                 <div class="profile-dropdown" id="profileDropdown" role="menu">
@@ -102,27 +110,27 @@
 
         <!-- Profile quick stats -->
         <div style="margin-top:18px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
-            <div style="background:rgba(255,255,255,0.02);padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.02);min-width:120px">
+            <div class="stat hover-lift" style="background:rgba(255,255,255,0.02);padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.02);min-width:120px">
                 <div style="font-size:12px;color:#9fb3d9">Age</div>
                 <div style="font-weight:800">{{ profile.age|default:'—' }}</div>
             </div>
 
-            <div style="background:rgba(255,255,255,0.02);padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.02);min-width:120px">
+            <div class="stat hover-lift" style="background:rgba(255,255,255,0.02);padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.02);min-width:120px">
                 <div style="font-size:12px;color:#9fb3d9">Sex</div>
                 <div style="font-weight:800">{% if profile.sex == 'M' %}Male{% elif profile.sex == 'F' %}Female{% elif profile.sex == 'O' %}Other{% else %}—{% endif %}</div>
             </div>
 
-            <div style="background:rgba(255,255,255,0.02);padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.02);min-width:120px">
+            <div class="stat hover-lift" style="background:rgba(255,255,255,0.02);padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.02);min-width:120px">
                 <div style="font-size:12px;color:#9fb3d9">Height (cm)</div>
                 <div style="font-weight:800">{{ profile.height_cm|default:'—' }}</div>
             </div>
 
-            <div style="background:rgba(255,255,255,0.02);padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.02);min-width:120px">
+            <div class="stat hover-lift" style="background:rgba(255,255,255,0.02);padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.02);min-width:120px">
                 <div style="font-size:12px;color:#9fb3d9">Weight (kg)</div>
                 <div style="font-weight:800">{{ profile.weight_kg|default:'—' }}</div>
             </div>
 
-            <div style="background:linear-gradient(90deg,#00b4ff33,#11d3a233);padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.02);min-width:140px">
+            <div class="stat hover-lift" style="background:linear-gradient(90deg,#00b4ff33,#11d3a233);padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.02);min-width:140px">
                 <div style="font-size:12px;color:#9fb3d9">BMI</div>
                 <div style="font-weight:900;font-size:18px">
                     <span class="bmi-value">{{ bmi|default:'—' }}</span>
@@ -130,12 +138,12 @@
                 </div>
             </div>
 
-            <div style="background:linear-gradient(90deg,#11d3a233,#ffd6a533);padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.02);min-width:160px">
+            <div class="stat hover-lift" style="background:linear-gradient(90deg,#11d3a233,#ffd6a533);padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.02);min-width:160px">
                 <div style="font-size:12px;color:#9fb3d9">BMR (est.)</div>
                 <div style="font-weight:900;font-size:18px">{{ bmr|default:'—' }} kcal/day</div>
             </div>
 
-            <div style="background:linear-gradient(90deg,#ffd6a533,#fff0d033);padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.02);min-width:160px">
+            <div class="stat hover-lift" style="background:linear-gradient(90deg,#ffd6a533,#fff0d033);padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.02);min-width:160px">
                 <div style="font-size:12px;color:#9fb3d9">Ideal weight</div>
                 <div style="font-weight:900;font-size:18px">{{ ideal_weight|default:'—' }} kg</div>
             </div>
@@ -275,6 +283,7 @@
     }catch(e){ console.warn('profile menu init', e); }
 })();
 </script>
+{% include 'partials/simple_animations_footer.html' %}
 
 <!-- NutriLog modal removed from this page (dashboard-only) -->
 

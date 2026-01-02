@@ -10,6 +10,28 @@ from .nutrition import (
 )
 from .models import MealLog
 import json
+
+
+def home(request):
+    """Public landing page. If user is logged in, redirect to dashboard."""
+    if request.user.is_authenticated:
+        return redirect('dashboard')
+    return render(request, "home.html")
+
+
+def how_it_works(request):
+    """Public page: explain how NutriLog works"""
+    return render(request, "how_it_works.html")
+
+
+def pricing(request):
+    """Public pricing page (dummy content)"""
+    plans = [
+        {"name": "Free", "price": "$0", "notes": ["Basic scanning", "Daily totals"]},
+        {"name": "Pro", "price": "$6/mo", "notes": ["Unlimited scans", "Detailed insights"]},
+        {"name": "Team", "price": "$12/mo", "notes": ["Shared goals", "CSV export"]},
+    ]
+    return render(request, "pricing.html", {"plans": plans})
 from collections import OrderedDict
 from django.db.models import Sum
 from django.utils import timezone

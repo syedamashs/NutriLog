@@ -1,0 +1,62 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Pricing — NutriLog</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    body{font-family:Inter,Arial,sans-serif}
+    .landing-dark{background:linear-gradient(180deg,#071024,#071a2e);color:#e6eef8}
+    .landing-dark .text-slate-900{color:#e6eef8!important}
+    .landing-dark .text-slate-600,.landing-dark .text-slate-500{color:#9fb3d9!important}
+    .landing-dark .bg-slate-50{background:rgba(255,255,255,0.02)!important}
+    .register-cta{background:linear-gradient(90deg,#00b4ff,#00a0e6);color:#071024;font-weight:700;box-shadow:0 10px 30px rgba(0,180,255,0.08)}
+  </style>
+</head>
+<body class="landing-dark">
+  <nav class="py-6">
+    <div class="max-w-6xl mx-auto px-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <img src="/data/nutrilog_logo.png" alt="NutriLog" class="w-10 h-10 object-contain">
+        <span class="font-bold text-lg">NutriLog</span>
+      </div>
+      <div class="hidden md:flex items-center gap-6">
+        <a href="{% url 'home' %}" class="text-slate-600 hover:text-slate-900">Home</a>
+        <a href="{% url 'how_it_works' %}" class="text-slate-600 hover:text-slate-900">How it Works</a>
+        <a href="{% url 'login' %}" class="text-slate-600 hover:text-slate-900">Log in</a>
+      </div>
+    </div>
+  </nav>
+
+  <header class="py-12">
+    <div class="max-w-6xl mx-auto px-4 text-center">
+      <h1 class="text-3xl font-extrabold text-slate-100">Pricing</h1>
+      <p class="mt-3 text-slate-300 max-w-2xl mx-auto">Simple, transparent pricing. Pick what works for you.</p>
+    </div>
+  </header>
+
+  <section class="py-16">
+    <div class="max-w-6xl mx-auto px-4 grid md:grid-cols-3 gap-8">
+      {% for plan in plans %}
+      <div class="p-8 rounded-2xl border bg-black/6 shadow-sm text-center">
+        <h3 class="text-xl font-bold mb-2 text-slate-100">{{ plan.name }}</h3>
+        <p class="text-3xl font-extrabold mb-4 text-slate-50">{{ plan.price }}</p>
+        <ul class="text-left mb-6">
+          {% for n in plan.notes %}
+          <li class="text-slate-300">• {{ n }}</li>
+          {% endfor %}
+        </ul>
+        <a href="{% url 'register' %}" class="inline-block register-cta px-6 py-2 rounded-lg">Choose</a>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <footer class="py-8 text-center text-sm text-slate-500">© NutriLog • Built with ❤️</footer>
+
+  <script>lucide.createIcons();</script>
+</body>
+</html>

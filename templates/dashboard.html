@@ -208,13 +208,17 @@
         .chart-card canvas{width:100%;height:120px}
 
         /* Streak badge (compact, matching other pages) */
-        .streak-badge{display:inline-grid;place-items:center;width:40px;height:40px;border-radius:8px;font-weight:900;color:#fff;font-size:16px;box-shadow:0 6px 14px rgba(0,0,0,0.34);position:relative;padding:4px 8px 4px 8px;text-decoration:none;z-index:10;border:1px solid rgba(255,255,255,0.04);cursor:pointer}
+        .streak-badge{display:inline-grid;place-items:center;width:40px;height:40px;border-radius:8px;font-weight:900;color:#fff;font-size:16px;box-shadow:0 6px 14px rgba(0,0,0,0.34);position:relative;padding:4px 8px 4px 8px;text-decoration:none;z-index:10;border:1px solid rgba(255,255,255,0.04);cursor:pointer;transition:transform .18s cubic-bezier(.2,.9,.2,1),box-shadow .18s cubic-bezier(.2,.9,.2,1);will-change:transform,box-shadow;outline:transparent}
+        /* Hover / focus lift */
+        .streak-badge:hover,.streak-badge:focus{transform:translateY(-6px);box-shadow:0 12px 26px rgba(0,0,0,0.28)}
+        .streak-badge:active{transform:translateY(-2px) scale(.99)}
         /* Flame anchored in corner and slightly larger so it's prominent but not overlapping */
         .streak-badge .streak-fire{position:absolute;left:4px;top:6px;font-size:14px;filter:drop-shadow(0 1px 4px rgba(0,0,0,0.12));line-height:1;z-index:13}
         /* Ensure number is readable and pushed right of flame */
         .streak-badge .streak-num{font-size:16px;font-weight:900;color:#071028;margin-left:6px;position:relative;z-index:12}
         /* Dashboard modifier: slightly larger for home page */
-        .streak-badge--home{width:64px;height:64px;border-radius:12px;font-size:20px;background:var(--accent-solid);color:#071028;z-index:20}
+        .streak-badge--home{width:64px;height:64px;border-radius:12px;font-size:20px;background:var(--accent-solid);color:#071028;z-index:20;transition:transform .2s cubic-bezier(.2,.9,.2,1),box-shadow .2s}
+        .streak-badge--home:hover,.streak-badge--home:focus{transform:translateY(-8px);box-shadow:0 18px 36px rgba(0,0,0,0.28)}
         .streak-badge--home .streak-fire{font-size:20px}
         .streak-badge--home .streak-num{font-size:20px}
         .streak-increment{animation:streak-pop .95s cubic-bezier(.2,.9,.2,1)}
@@ -239,8 +243,9 @@
         }
 
     </style> 
+    {% include 'partials/simple_animations_head.html' %}
 </head>
-<body>
+<body class="no-hover-lift">
 <div class="app">
     <header>
         <div class="brand">
@@ -256,7 +261,7 @@
                 <div style="display:flex;align-items:center;gap:10px">
                     <div style="font-size:12px;color:var(--muted)">Streak</div>
                     <a href="/analytics/logs/" style="text-decoration:none">
-                        <div class="streak-badge" data-count="{{ streak.count }}" data-color="{{ streak.color }}" role="img" aria-label="{{ streak.count }} day streak">
+                        <div class="streak-badge" tabindex="0" data-count="{{ streak.count }}" data-color="{{ streak.color }}" role="img" aria-label="{{ streak.count }} day streak">
                             <span class="streak-fire">🔥</span>
                             <span class="streak-num">{{ streak.count }}</span>
                         </div>
@@ -920,6 +925,7 @@
   }catch(e){ console.warn('fn modal init', e); }
 })();
 </script>
+{% include 'partials/simple_animations_footer.html' %}
 
 </body>
 </html>

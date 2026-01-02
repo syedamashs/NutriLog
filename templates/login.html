@@ -10,11 +10,12 @@
         body{font-family:Inter,system-ui,Arial;background:linear-gradient(180deg,#071024,#071a2e);color:#e6eef8;display:flex;align-items:center;justify-content:center;height:100vh;margin:0}
         .card{background:rgba(255,255,255,0.03);padding:28px;border-radius:12px;border:1px solid rgba(255,255,255,0.03);width:420px}
         h1{margin:0 0 8px}
-        input{width:100%;padding:10px;margin-top:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:#e6eef8}
+        input{width:100%;padding:10px 6px 10px 10px;margin-top:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:#e6eef8;box-sizing:border-box;display:block}
         .btn{margin-top:12px;padding:10px 12px;border-radius:10px;border:none;background:#00b4ff;color:#071028;width:100%;font-weight:700}
         .muted{color:#9fb3d9;font-size:13px;margin-top:8px}
         a{color:#ffd6a5}
     </style>
+    {% include 'partials/simple_animations_head.html' %}
 </head>
 <body>
 <div class="card">
@@ -34,5 +35,6 @@
 
     <div style="margin-top:12px;color:#9fb3d9">No account? <a href="/register/">Create one</a></div>
 </div>
+    {% include 'partials/simple_animations_footer.html' %}
 </body>
 </html>

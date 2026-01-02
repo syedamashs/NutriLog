@@ -62,13 +62,14 @@
         .range-btn{padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);background:transparent;color:#e6eef8;cursor:pointer;font-weight:700;transition:all .12s ease}
         .range-btn.active{color:#071028;background:#00b4ff;border-color:rgba(0,180,255,0.85);box-shadow:0 6px 12px rgba(0,180,255,0.12)}
     </style>
+    {% include 'partials/simple_animations_head.html' %}
 </head>
 <body>
 <div class="container">
     <div id="toast" aria-live="polite" style="position:fixed;left:50%;transform:translateX(-50%);bottom:28px;background:rgba(7,16,40,0.98);color:#00b4ff;padding:10px 14px;border-radius:10px;box-shadow:0 6px 18px rgba(0,0,0,0.4);display:none;font-weight:700;z-index:9999"></div> 
     <div class="header">
         <div style="display:flex;align-items:center;gap:12px">
-            <div class="logo"><img src="/data/nutrilog_logo.png" alt="NutriLog" onerror="this.style.display='none'; this.parentElement.querySelector('.logo-fallback').style.display='flex'"/><div class="logo-fallback" style="display:none;align-items:center;justify-content:center;width:100%;height:100%;font-weight:800;color:#fff">NL</div></div>
+            <div class="logo hover-lift" tabindex="0"><img src="/data/nutrilog_logo.png" alt="NutriLog" onerror="this.style.display='none'; this.parentElement.querySelector('.logo-fallback').style.display='flex'"/><div class="logo-fallback" style="display:none;align-items:center;justify-content:center;width:100%;height:100%;font-weight:800;color:#fff">NL</div></div>
             <div>
                 <div class="title">Meal History</div>
                 <div class="muted">Overview of your past meals and daily totals</div>
@@ -80,14 +81,14 @@
             <div style="margin-left:12px;display:flex;align-items:center;gap:8px">
                 <div style="font-size:12px;color:#9fb3d9">Streak</div>
                 <a href="/analytics/logs/" style="text-decoration:none">
-                    <div class="streak-badge" data-count="{{ streak.count }}" data-color="{{ streak.color }}" role="img" aria-label="{{ streak.count }} day streak">
+                    <div class="streak-badge hover-lift" tabindex="0" data-count="{{ streak.count }}" data-color="{{ streak.color }}" role="img" aria-label="{{ streak.count }} day streak">
                         <span class="streak-fire">🔥</span>
                         <span class="streak-num">{{ streak.count }}</span>
                     </div>
                 </a>
             </div>
             <div style="margin-left:12px" class="profile-menu">
-                <button id="profileBtn" class="profile-avatar" aria-haspopup="true" aria-expanded="false" title="{{ user.username }}">
+                <button id="profileBtn" class="profile-avatar hover-lift" tabindex="0" aria-haspopup="true" aria-expanded="false" title="{{ user.username }}">
                     <span class="initial">{{ user.username|slice:":1"|upper }}</span>
                 </button>
                 <div class="profile-dropdown" id="profileDropdown" role="menu">
@@ -146,13 +147,13 @@
             <!-- Goal & quick stats panel (arranged as two columns: left = Daily goal + TDEE, right = Remaining + BMR) -->
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:48px">
                 <div style="display:flex;flex-direction:column;gap:12px">
-                    <div style="background:rgba(255,255,255,0.02);padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.03)">
+                    <div class="hover-lift" style="background:rgba(255,255,255,0.02);padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.03)">
                         <div style="font-size:12px;color:#9fb3d9">Daily goal</div>
                         <div style="font-weight:900;font-size:16px;margin-top:6px">{{ goal }} kcal {% if profile_bmr %}<small style="color:#9fb3d9;font-weight:700;margin-left:8px">(BMR-based)</small>{% endif %}</div>
                         <div class="muted" style="margin-top:6px">Hit rate: <strong>{{ goal_hit_rate }}%</strong> • Days logged: <strong>{{ days_with_data }}</strong></div>
                     </div>
 
-                    <div style="background:rgba(255,255,255,0.02);padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.03)">
+                    <div class="hover-lift" style="background:rgba(255,255,255,0.02);padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.03)">
                         <div style="font-size:12px;color:#9fb3d9">Suggested TDEE</div>
                         <div style="font-weight:900;font-size:16px;margin-top:6px">{% if tdee_suggestion %}{{ tdee_suggestion }} kcal/day{% else %}<span class="muted">—</span>{% endif %}</div>
                         <div class="muted" style="margin-top:6px">(Sedentary multiplier ×1.2)</div>
@@ -160,13 +161,13 @@
                 </div>
 
                 <div style="display:flex;flex-direction:column;gap:12px">
-                    <div style="background:rgba(255,255,255,0.02);padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.03)">
+                    <div class="hover-lift" style="background:rgba(255,255,255,0.02);padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.03)">
                         <div style="font-size:12px;color:#9fb3d9">Remaining to goal</div>
                         <div style="font-weight:900;font-size:16px;margin-top:6px">{{ remaining_goal }} kcal</div>
                         <div class="muted" style="margin-top:6px">Today: <strong>{{ total_today.calories }} kcal</strong> • Goal: <strong>{{ goal }} kcal</strong></div>
                     </div>
 
-                    <div style="background:rgba(255,255,255,0.02);padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.03)">
+                    <div class="hover-lift" style="background:rgba(255,255,255,0.02);padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.03)">
                         <div style="font-size:12px;color:#9fb3d9">BMR (estimate)</div>
                         <div style="font-weight:900;font-size:15px;margin-top:6px">{% if profile_bmr %}{{ profile_bmr }} kcal/day{% else %}<span class="muted">—</span>{% endif %}</div>
                         <div class="muted" style="margin-top:6px">(Basal Metabolic Rate)</div>
@@ -568,5 +569,21 @@
 
 <!-- NutriLog modal removed from this page (dashboard-only) -->
 
+<script>
+// Stronger fallback: force-add hover-lift + anim-hover-lift to relevant elements
+// so hover lift is visible immediately even when static JS is cached (304).
+// Also make elements keyboard-focusable for accessibility.
+document.addEventListener('DOMContentLoaded', function(){
+    try{
+        const selectors = '.logo, .streak-badge, .profile-avatar, .stat, .card, .hover-lift';
+        document.querySelectorAll(selectors).forEach(el => {
+            el.classList.add('hover-lift', 'anim-hover-lift');
+            if(!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '0');
+        });
+    }catch(e){ console.warn('hover-lift fallback failed', e); }
+});
+</script>
+
+    {% include 'partials/simple_animations_footer.html' %}
 </body>
 </html>
